@@ -257,7 +257,8 @@ class SmartObject(object):
                             self.__modified[storage_id].add(prop)
                         if save: self.save()
                     return True and not external
-                return False
+                else:
+                    return False
 
     def prepare_value(self, key, value):
         return value
