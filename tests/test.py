@@ -33,7 +33,7 @@ class Person(smartobject.SmartObject):
 class Employee(Person):
 
     def __init__(self, name, etest=None):
-        self.load_property_map('employee.yml')
+        self.load_property_map()
         self.load_property_map({
             'salary': {
                 'type': float,

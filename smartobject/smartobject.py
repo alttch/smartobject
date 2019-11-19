@@ -52,9 +52,12 @@ class SmartObject(object):
             new_property_map = property_map
         else:
             import yaml
-            fname = f'{config.property_maps_dir}/{property_map}' if \
-                    property_map.find('/') == -1 else property_map
-            with open(fname) as fh:
+            if property_map is None:
+                property_map = config.property_maps_dir + \
+                        f'/{self.__class__.__name__}.yml'
+            elif property_map.find('/') == -1:
+                property_map = f'{config.property_maps_dir}/{property_map}'
+            with open(property_map) as fh:
                 new_property_map = yaml.load(fh)
         for k, v in new_property_map.items():
             if k not in self._property_map or override:
@@ -351,7 +354,6 @@ class SmartObject(object):
 
     def delete(self, _call_factory=True):
         pk = self._get_primary_key()
-        logging.warning(self._object_factory)
         if self._object_factory and _call_factory:
             self._object_factory.delete(pk)
         else:
