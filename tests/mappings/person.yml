@@ -1,0 +1,21 @@
+name:
+  store: true
+  type: str
+  read-only: True
+  serialize:
+    - salary
+    - info
+can_code:
+  store: true
+  type: bool
+password:
+  log-level: 30
+  log-hide-value: true
+sex:
+  type: str
+  choices:
+    - male
+    - female
+    - other
+  store: true
+  default: male

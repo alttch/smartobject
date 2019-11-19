@@ -1,0 +1,18 @@
+department:
+  type: str
+  default: coders
+  serialize: info
+personal_code:
+  type: int
+  accept-hex: true
+  store: true
+  sync: true
+  sync-always: true
+key:
+  pk: true
+  read-only: true
+projects_created:
+  type: int
+  store: db1
+  default: 0
+  sync: true
