@@ -195,7 +195,7 @@ class AbstractFileStorage(AbstractStorage):
             try:
                 with open(
                     (self.dir if self.dir is not None else config.storage_dir) +
-                        '/' + pk.replace('/', '___') + '.' + self.ext,
+                        '/' + str(pk).replace('/', '___') + '.' + self.ext,
                         'r' + ('b' if self.binary else '')) as fh:
                     return self.loads(fh.read())
             except FileNotFoundError:
@@ -205,7 +205,7 @@ class AbstractFileStorage(AbstractStorage):
     def delete(self, pk, props, **kwargs):
         with self.__lock:
             fname = (self.dir if self.dir is not None else config.storage_dir
-                    ) + '/' + pk.replace('/', '___') + '.' + self.ext
+                    ) + '/' + str(pk).replace('/', '___') + '.' + self.ext
             if self.instant_delete:
                 import os
                 try:
