@@ -19,20 +19,23 @@ Example:
    from smartobject import SmartObject
 
    class MyObject(SmartObject):
-      # tries to load map from
-      # {smartobject.config.property_maps_dir}/self.__class__.__name__
-      self.load_property_map()
-      # tries to load map from the specified file
-      # if no directory specified, smartobject.config.property_maps_dir is used
-      self.load_property_map('my.yml')
-      # load property map from Python dict
-      self.load_property_map({
-         'prop1': {
-            'type': str,
-            'store': True
-            }
-      })
-      self.apply_property_map()
+
+      def __init__(self):
+         # tries to load map from
+         # {smartobject.config.property_maps_dir}/{self.__class__.__name__}
+         self.load_property_map()
+         # tries to load map from the specified file
+         # if no directory specified, smartobject.config.property_maps_dir is
+         # used
+         self.load_property_map('my.yml')
+         # load property map from Python dict
+         self.load_property_map({
+            'prop1': {
+               'type': str,
+               'store': True
+               }
+         })
+         self.apply_property_map()
 
 Property map structure
 ======================
