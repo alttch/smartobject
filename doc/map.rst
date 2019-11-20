@@ -62,6 +62,11 @@ Primary key is used to load/save object, store it in :doc:`object factories
 Primary key property is automatically marked as read-only and can not be
 changed with *set_prop()* method.
 
+.. note::
+
+   While primary key is null, it's not possible to perform save and sync
+   operations on object.
+
 Property type and value
 =======================
 
