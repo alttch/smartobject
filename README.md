@@ -4,6 +4,8 @@
 manipulate object attributes with the API commands, store and synchronize
 object data.
 
+<img src="https://img.shields.io/pypi/v/smartobject.svg" /> <img src="https://img.shields.io/badge/license-MIT-green" /> <img src="https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue.svg" />
+
 Mapped object attributes (called properties) can be automatically validated,
 saved, loaded, serialized and synchronized with the external services.
 
