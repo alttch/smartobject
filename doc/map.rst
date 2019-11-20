@@ -42,7 +42,7 @@ Property map structure
 
 A property map looks like
 
-.. literalinclude:: ../tests/map/person.yml
+.. literalinclude:: ../examples/person.yml
     :language: yaml
 
 Object primary key
