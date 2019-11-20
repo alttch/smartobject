@@ -125,10 +125,10 @@ class SmartObjectFactory:
             pk: object primary key, required
         """
         o = self.get(pk)
-        self.remove(pk)
+        self.remove(pk, _obj=o)
         o.delete(_call_factory=False)
 
-    def remove(self, pk):
+    def remove(self, pk, _obj=None):
         """
         Remove object from the factory
 
@@ -136,4 +136,7 @@ class SmartObjectFactory:
             pk: object primary key, required
         """
         with self.__lock:
+            if _obj is None:
+                _obj = self.get(pk)
+            _obj._object_factory = None
             del self._objects[pk]
