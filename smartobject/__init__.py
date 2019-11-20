@@ -1,7 +1,5 @@
 __version__ = '0.0.3'
 
-# TODO: docs
-
 from . import config
 
 from .smartobject import SmartObject
