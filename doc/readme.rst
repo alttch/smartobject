@@ -5,6 +5,11 @@ SmartObject
 easily manipulate object attributes with the API commands, store and
 synchronize object data.
 
+SmartObject is designed to quickly build IoT applications, but can be
+used in any other applications, which require combining local and
+distributed object storages and changing object properties via external
+API calls.
+
 Mapped object attributes (called properties) can be automatically
 validated, saved, loaded, serialized and synchronized with the external
 services.
