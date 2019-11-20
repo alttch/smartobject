@@ -37,7 +37,6 @@ How to implement this with SmartObject? Just a few lines of code:
 
 .. code:: python
 
-   sys.path.insert(0, '..')
    import smartobject
 
 
