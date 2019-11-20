@@ -6,7 +6,7 @@ class SmartObjectFactory:
     Object factory class for Smart Objects
     """
 
-    def __init__(self, object_class):
+    def __init__(self, object_class=None):
         """
         Initialize Smart Object factory
 

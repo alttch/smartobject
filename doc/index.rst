@@ -1,5 +1,8 @@
 .. include:: readme.rst
 
 .. toctree::
-    :maxdepth: 1
+   :maxdepth: 1
 
+   smartobject
+   factory
+   config
