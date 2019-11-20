@@ -145,9 +145,14 @@ class SmartObject(object):
                     self.__serialize_map.setdefault(s, set()).add(i)
         if self.__primary_key_field is None:
             raise RuntimeError('Primary key is not defined')
-        self._get_primary_key = partial(getattr, self, self.__primary_key_field)
         self.__lock = threading.RLock()
         self.__cerr = f'for objects of class "{self.__class__.__name__}"'
+
+    def _get_primary_key(self, _allow_null=True):
+        pk = getattr(self, self.__primary_key_field, None)
+        if pk is None and not _allow_null:
+            raise ValueError('Primary key is not set')
+        return pk
 
     def __check_deleted(self):
         if self.deleted:
@@ -308,8 +313,8 @@ class SmartObject(object):
                 are serialized
             allow_deleted: allow serialization of the deleted object
         """
-        if not allow_deleted: self.__check_deleted()
         with self.__lock:
+            if not allow_deleted: self.__check_deleted()
             return {
                 key: self.serialize_prop(key)
                 for key in self.__serialize_map[mode]
@@ -335,18 +340,19 @@ class SmartObject(object):
         """
         Load object data from the storage
         """
-        self.__check_deleted()
-        logger.debug('Loading {c} {pk}'.format(c=self.__class__.__name__,
-                                               pk=self._get_primary_key()))
-        for storage_id in self.__storages:
-            self.set_prop(value={
-                key: value
-                for key, value in storage.get_storage(storage_id).load(
-                    pk=self._get_primary_key()).items()
-                if not self._property_map[key].get('external')
-            },
-                          _allow_readonly=True)
-            self.__modified[storage_id].clear()
+        with self.__lock:
+            self.__check_deleted()
+            logger.debug('Loading {c} {pk}'.format(c=self.__class__.__name__,
+                                                   pk=self._get_primary_key()))
+            for storage_id in self.__storages:
+                self.set_prop(value={
+                    key: value
+                    for key, value in storage.get_storage(storage_id).load(
+                        pk=self._get_primary_key()).items()
+                    if not self._property_map[key].get('external')
+                },
+                              _allow_readonly=True)
+                self.__modified[storage_id].clear()
 
     def sync(self, force=False):
         """
@@ -355,10 +361,10 @@ class SmartObject(object):
         Args:
             force: force sync even if object is not modified
         """
-        self.__check_deleted()
-        sync_tasks = {}
         with self.__lock:
-            pk = self._get_primary_key()
+            pk = self._get_primary_key(_allow_null=False)
+            self.__check_deleted()
+            sync_tasks = {}
             for sync_id, props in self.__sync_map.items(
             ) if force else self.__modified_for_sync.items():
                 sync_data = {
@@ -367,9 +373,8 @@ class SmartObject(object):
                     for key in chain(props, self.__sync_always[sync_id])
                 }
                 if not force: props.clear()
-                if sync_data: sync_tasks[sync_id] = sync_data
-        for sync_id, sync_data in sync_tasks.items():
-            sync.get_sync(sync_id).sync(pk, sync_data)
+                if sync_data:
+                    sync.get_sync(sync_id).sync(pk, sync_data)
         return True
 
     def save(self, force=False):
@@ -379,10 +384,11 @@ class SmartObject(object):
         Args:
             force: force save even if object is not modified
         """
-        self.__check_deleted()
-        pk = self._get_primary_key()
-        logger.debug('Saving {c} {pk}'.format(c=self.__class__.__name__, pk=pk))
         with self.__lock:
+            self.__check_deleted()
+            pk = self._get_primary_key(_allow_null=False)
+            logger.debug('Saving {c} {pk}'.format(c=self.__class__.__name__,
+                                                  pk=pk))
             for storage_id in self.__modified:
                 if self.__modified[storage_id] or force:
                     data = {
@@ -441,20 +447,21 @@ class SmartObject(object):
         Delete object
         """
         pk = self._get_primary_key()
-        if self._object_factory and _call_factory:
+        if self._object_factory and _call_factory and pk is not None:
             self._object_factory.delete(pk)
         else:
-            self.__check_deleted()
-            logger.info('Deleting {c} {pk}'.format(c=self.__class__.__name__,
-                                                   pk=pk))
             if not self.__deleted:
+                self.__check_deleted()
+                logger.info('Deleting {c} {pk}'.format(
+                    c=self.__class__.__name__, pk=pk))
                 with self.__lock:
                     self.__deleted = True
-                    for storage_id in self.__storages:
-                        storage.get_storage(storage_id).delete(
-                            pk, self.__storage_map[storage_id])
-                    for sync_id in self.__syncs:
-                        sync.get_sync(sync_id).delete(pk)
+                    if pk is not None:
+                        for storage_id in self.__storages:
+                            storage.get_storage(storage_id).delete(
+                                pk, self.__storage_map[storage_id])
+                        for sync_id in self.__syncs:
+                            sync.get_sync(sync_id).delete(pk)
 
     @property
     def deleted(self):
