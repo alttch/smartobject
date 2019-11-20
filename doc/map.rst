@@ -22,7 +22,7 @@ Example:
 
       def __init__(self):
          # tries to load map from
-         # {smartobject.config.property_maps_dir}/{self.__class__.__name__}
+         # {smartobject.config.property_maps_dir}/{self.__class__.__name__}.yml
          self.load_property_map()
          # tries to load map from the specified file
          # if no directory specified, smartobject.config.property_maps_dir is
@@ -226,7 +226,7 @@ Example: log property changes with DEBUG (=10) level:
 .. code:: yaml
 
    myprop1:
-      log-level: 30
+      log-level: 10
 
 Example: hide property values for the sensitive fields:
 

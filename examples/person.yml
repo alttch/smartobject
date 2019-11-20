@@ -1,5 +1,6 @@
 name:
     pk: true
+    serialize: info
 sex:
     type: str
     choices:
@@ -7,6 +8,7 @@ sex:
         - male
         - female
     store: true
+    serialize: info
 heartbeat:
     type: float
     external: true

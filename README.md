@@ -56,6 +56,7 @@ jack = Person('Jack')
 people.set_prop('John', 'sex', 'male')
 people.set_prop('Jane', 'sex', 'female')
 
+# print object info (name and sex only)
 from pprint import pprint
 pprint(people.serialize('Jane'))
 
@@ -89,6 +90,7 @@ The map for the above example looks like:
 ```yaml
 name:
     pk: true
+    serialize: info
 sex:
     type: str
     choices:
@@ -96,6 +98,7 @@ sex:
         - male
         - female
     store: true
+    serialize: info
 heartbeat:
     type: float
     external: true

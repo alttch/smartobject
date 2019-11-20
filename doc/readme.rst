@@ -59,6 +59,7 @@ How to implement this with SmartObject? Just a few lines of code:
    people.set_prop('John', 'sex', 'male')
    people.set_prop('Jane', 'sex', 'female')
 
+   # print object info (name and sex only)
    from pprint import pprint
    pprint(people.serialize('Jane'))
 
@@ -92,6 +93,7 @@ The map for the above example looks like:
 
    name:
        pk: true
+       serialize: info
    sex:
        type: str
        choices:
@@ -99,6 +101,7 @@ The map for the above example looks like:
            - male
            - female
        store: true
+       serialize: info
    heartbeat:
        type: float
        external: true
