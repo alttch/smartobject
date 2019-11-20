@@ -25,7 +25,7 @@ Note: all SmartObject methods are thread-safe (at least they should be :)
 ## Example:
 
 You have a team of people with heart-rate sensors. Data for each person is
-stored into local JSON files, heartbeat is stored in Redis database. How to
+stored in local JSON files, heartbeat is stored in Redis database. How to
 implement this with SmartObject? Just a few lines of code:
 
 ```python
