@@ -68,6 +68,7 @@ jack.load()
 # add Jack to factory
 people.create(obj=jack)
 
+# consider heartbeat is set to Redis via external service
 print('Heartbeat of Jack is: {}'.format(people.get('Jack').heartbeat)
 ```
 
