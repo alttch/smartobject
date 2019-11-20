@@ -155,8 +155,8 @@ Synchronization
 ===============
 
 While **smartobject.save()** method may be deferred,
-:doc:`SmartObject.sync() <sync>` is called any time when object property is
-modified.
+:doc:`SmartObject.sync() <sync>` is always called every time when object
+property is modified.
 
 To include object property in default synchronization, use:
 
