@@ -29,7 +29,9 @@ stored in local JSON files, heartbeat is stored in Redis database. How to
 implement this with SmartObject? Just a few lines of code:
 
 ```python
+sys.path.insert(0, '..')
 import smartobject
+
 
 class Person(smartobject.SmartObject):
 
@@ -37,6 +39,7 @@ class Person(smartobject.SmartObject):
         self.name = name
         self.load_property_map('person.yml')
         self.apply_property_map()
+
 
 smartobject.config.storage_dir = 'data'
 
@@ -55,13 +58,13 @@ jack = Person('Jack')
 # you can set a single prop
 people.set_prop('John', 'sex', 'male')
 people.set_prop('Jane', 'sex', 'female')
+# or multiple props with dict
+# heartbeat value is automatically written to Redis
+jack.set_prop({'sex': 'male', 'heartbeat': 100})
 
 # print object info (name and sex only)
 from pprint import pprint
 pprint(people.serialize('Jane', mode='info'))
-
-# or multiple props with dict
-jack.set_prop({ 'sex': 'male' })
 
 people.save()
 jack.save()
@@ -74,10 +77,7 @@ jack.load()
 # add Jack to factory
 people.create(obj=jack)
 
-# set Jack's heartbeat
-jack.heartbeat = 100
-
-# but consider heartbeat is collected to Redis via external service
+# heartbeat value is automatically read from Redis
 print('Heartbeat of Jack is: {}'.format(people.get('Jack').heartbeat))
 
 ```
