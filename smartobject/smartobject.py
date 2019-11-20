@@ -367,7 +367,7 @@ class SmartObject(object):
                     for key in chain(props, self.__sync_always[sync_id])
                 }
                 if not force: props.clear()
-                sync_tasks[sync_id] = sync_data
+                if sync_data: sync_tasks[sync_id] = sync_data
         for sync_id, sync_data in sync_tasks.items():
             sync.get_sync(sync_id).sync(pk, sync_data)
         return True
