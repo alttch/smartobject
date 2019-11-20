@@ -16,6 +16,8 @@ data object.
 Property values are automatically processed, validated and synchronized with
 external services if required.
 
+Note: all SmartObject methods are thread-safe (at least they should be :)
+
 ## Example:
 
 You have a team of people with heart-rate sensors. Data for each person is
@@ -78,6 +80,12 @@ heartbeat:
 ```
 
 Pretty simple, isn't it? You define a map, SmartObject does the job!
+
+## Install
+
+```shell
+pip3 install smartobject
+```
 
 ## Documentation
 
