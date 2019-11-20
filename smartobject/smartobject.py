@@ -433,7 +433,7 @@ class SmartObject(object):
         """
         with self.__lock:
             if self.__snapshot is None and shapsnot is None:
-                raise ValueError('No snapshot created')
+                raise ValueError('No snapshot defined')
             self.set_prop(value=snapshot if snapshot else self.__snapshot)
 
     def delete(self, _call_factory=True):
