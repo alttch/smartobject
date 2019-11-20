@@ -211,3 +211,23 @@ database.
 If *auto_externals* is set to False in :doc:`SmartObject configuration
 <config>`, you must create getter and setter for such property manually,
 otherwise everything's handled automatically by SmartObject class.
+
+Logging
+=======
+
+SmartObject uses logger called "smartobject". All property changes are logged
+with INFO level, but you can change it.
+
+Example: log property changes with DEBUG (=10) level:
+
+.. code:: yaml
+
+   myprop1:
+      log-level: 30
+
+Example: hide property values for the sensitive fields:
+
+.. code:: yaml
+
+   mysecretprop1:
+      log-hide-value: true
