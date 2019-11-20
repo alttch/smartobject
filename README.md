@@ -50,12 +50,20 @@ people.create(name='Jane')
 # create object manually
 jack = Person('Jack')
 
+# you can set a single prop
 people.set_prop('John', 'sex', 'male')
 people.set_prop('Jane', 'sex', 'female')
+
+# or multiple props with dict
 people.set_prop('Jack', { 'sex', 'male' })
 
 people.save()
 jack.save()
+
+# clear Jack's sex
+jack.set_prop('sex', None)
+# load it back
+jack.load()
 
 # add Jack to factory
 people.create(obj=jack)
@@ -74,9 +82,9 @@ name:
 sex:
     type: str
     choices:
+        - null
         - male
         - female
-        - other
     store: true
 heartbeat:
     external: true
