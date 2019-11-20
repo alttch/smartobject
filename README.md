@@ -58,7 +58,7 @@ people.set_prop('Jane', 'sex', 'female')
 
 # print object info (name and sex only)
 from pprint import pprint
-pprint(people.serialize('Jane'))
+pprint(people.serialize('Jane', mode='info'))
 
 # or multiple props with dict
 jack.set_prop({ 'sex': 'male' })

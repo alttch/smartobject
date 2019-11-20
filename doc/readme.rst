@@ -61,7 +61,7 @@ How to implement this with SmartObject? Just a few lines of code:
 
    # print object info (name and sex only)
    from pprint import pprint
-   pprint(people.serialize('Jane'))
+   pprint(people.serialize('Jane', mode='info'))
 
    # or multiple props with dict
    jack.set_prop({ 'sex': 'male' })
