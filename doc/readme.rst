@@ -13,8 +13,15 @@ SmartObject looks like ORM, but it’s different from ORM: object
 properties can be stored in storages of different type and combined
 together into a single data object.
 
+SmartObject has built-in storage engines for files (JSON, YAML,
+MessagePack and CBOR) and databases: RDBMS via SQLAlchemy (can store
+objects) and Redis (can handle external properties only).
+
 Property values are automatically processed, validated and synchronized
 with external services if required.
+
+Note: all SmartObject methods are thread-safe (at least they should be
+:)
 
 Example:
 --------
@@ -39,17 +46,33 @@ How to implement this with SmartObject? Just a few lines of code:
 
    people = smartobject.SmartObjectFactory(Person)
 
+   # create objects with factory
    people.create(name='John')
    people.create(name='Jane')
-   people.create(name='Jack')
 
+   # create object manually
+   jack = Person('Jack')
+
+   # you can set a single prop
    people.set_prop('John', 'sex', 'male')
    people.set_prop('Jane', 'sex', 'female')
+
+   # or multiple props with dict
    people.set_prop('Jack', { 'sex', 'male' })
 
    people.save()
+   jack.save()
 
-   print('Heartbeat of Jack is: {}'.format(people.get('Jack').heartbeat)
+   # clear Jack's sex
+   jack.set_prop('sex', None)
+   # load it back
+   jack.load()
+
+   # add Jack to factory
+   people.create(obj=jack)
+
+   # consider heartbeat is collected to Redis via external service
+   print('Heartbeat of Jack is: {}'.format(people.get('Jack').heartbeat))
 
 The file *person.yml* is a property map for the *Person* object. It can
 be loaded from the external YAML file or specified directly, as Python
@@ -64,15 +87,22 @@ The map for the above example looks like:
    sex:
        type: str
        choices:
+           - null
            - male
            - female
-           - other
        store: true
    heartbeat:
        external: true
        store: r1
 
 Pretty simple, isn’t it? You define a map, SmartObject does the job!
+
+Install
+-------
+
+.. code:: shell
+
+   pip3 install smartobject
 
 Documentation
 -------------

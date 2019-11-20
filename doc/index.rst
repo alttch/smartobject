@@ -5,7 +5,7 @@
 
    smartobject
    map
-   store
+   storage
    sync
    factory
    config

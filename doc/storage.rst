@@ -1,5 +1,5 @@
-Storages
-********
+Storage
+*******
 
 Object properties data is stored into storages. You may define one or multiple
 storages, each property can be :doc:`mapped <map>` only to the single storage.
