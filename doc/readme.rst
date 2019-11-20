@@ -1,7 +1,7 @@
 SmartObject
 ===========
 
-`SmartObject <https://github.com/alttch/smartobject>`__ is a tool to
+`SmartObject <https://github.com/alttch/smartobject>`__ is a library to
 easily manipulate object attributes with the API commands, store and
 synchronize object data.
 

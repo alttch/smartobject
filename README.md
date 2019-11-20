@@ -1,6 +1,6 @@
 # SmartObject
 
-[SmartObject](https://github.com/alttch/smartobject) is a tool to easily
+[SmartObject](https://github.com/alttch/smartobject) is a library to easily
 manipulate object attributes with the API commands, store and synchronize
 object data.
 
