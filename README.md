@@ -13,6 +13,10 @@ SmartObject looks like ORM, but it's different from ORM: object properties can
 be stored in storages of different type and combined together into a single
 data object.
 
+SmartObject has built-in storage engines for files (JSON, YAML, MessagePack and
+CBOR) and databases: RDBMS via SQLAlchemy (can store objects) and Redis (can
+handle external properties only).
+
 Property values are automatically processed, validated and synchronized with
 external services if required.
 
