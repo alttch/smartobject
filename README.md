@@ -69,7 +69,7 @@ jack.load()
 people.create(obj=jack)
 
 # consider heartbeat is collected to Redis via external service
-print('Heartbeat of Jack is: {}'.format(people.get('Jack').heartbeat)
+print('Heartbeat of Jack is: {}'.format(people.get('Jack').heartbeat))
 ```
 
 The file *person.yml* is a property map for the *Person* object. It can be
