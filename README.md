@@ -6,7 +6,8 @@ object data.
 
 SmartObject is designed to quickly build IoT applications, but can be used in
 any other applications, which require combining local and distributed object
-storages and changing object properties via external API calls.
+storages and changing object properties via external API calls, automatically
+validating incoming data.
 
 <img src="https://img.shields.io/pypi/v/smartobject.svg" /> <img src="https://img.shields.io/badge/license-MIT-green" /> <img src="https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue.svg" />
 
