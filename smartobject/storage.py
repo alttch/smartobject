@@ -281,9 +281,9 @@ class AbstractFileStorage(AbstractStorage):
 
     Has the following properties:
 
-    allow_empty: if no object data file is found, return empty data (defalt:
-        True)
-    instant_delete: delete object files instantly (default: True)
+        allow_empty: if no object data file is found, return empty data (defalt: True)
+
+        instant_delete: delete object files instantly (default: True)
 
     File-based storages usually don't implement get_prop/set_prop methods
     """

@@ -8,7 +8,7 @@ import logging
 sys.path.insert(0, Path().absolute().parent.as_posix())
 import smartobject
 
-smartobject.config.property_maps_dir = 'mappings'
+smartobject.config.property_maps_dir = 'map'
 smartobject.config.storage_dir = 'test_data'
 
 smartobject.define_sync(smartobject.DummySync())

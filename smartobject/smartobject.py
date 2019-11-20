@@ -85,7 +85,7 @@ class SmartObject(object):
                 raise RuntimeError('Property map is already applied')
         except AttributeError:
             pass
-        self.__serialize_map = {None: []}
+        self.__serialize_map = {None: set()}
         self.__primary_key_field = None
         self.__deleted = False
         self.__modified = {None: set()}
@@ -112,9 +112,10 @@ class SmartObject(object):
                     raise RuntimeError('Multiple primary keys defined')
                 else:
                     self.__primary_key_field = i
+                v['read-only'] = True
             if not hasattr(self, i) and not v.get('external'):
                 setattr(self, i, v.get('default'))
-            self.__serialize_map[None].append(i)
+            self.__serialize_map[None].add(i)
             ser = v.get('serialize')
             if 'sync' in v and v['sync'] is not False:
                 sync_id = v['sync']
@@ -141,7 +142,7 @@ class SmartObject(object):
                     self.__externals[i] = storage_id
             if ser:
                 for s in ser if isinstance(ser, list) else [ser]:
-                    self.__serialize_map.setdefault(s, []).append(i)
+                    self.__serialize_map.setdefault(s, set()).add(i)
         if self.__primary_key_field is None:
             raise RuntimeError('Primary key is not defined')
         self._get_primary_key = partial(getattr, self, self.__primary_key_field)
