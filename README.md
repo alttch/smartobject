@@ -37,15 +37,22 @@ smartobject.define_storage(smartobject.RedisStorage(), 'r1')
 
 people = smartobject.SmartObjectFactory(Person)
 
+# create objects with factory
 people.create(name='John')
 people.create(name='Jane')
-people.create(name='Jack')
+
+# create object manually
+jack = Person('Jack')
 
 people.set_prop('John', 'sex', 'male')
 people.set_prop('Jane', 'sex', 'female')
 people.set_prop('Jack', { 'sex', 'male' })
 
 people.save()
+jack.save()
+
+# add Jack to factory
+people.create(obj=jack)
 
 print('Heartbeat of Jack is: {}'.format(people.get('Jack').heartbeat)
 ```
