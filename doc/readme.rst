@@ -41,6 +41,8 @@ How to implement this with SmartObject? Just a few lines of code:
            self.load_property_map('person.yml')
            self.apply_property_map()
 
+   smartobject.config.storage_dir = 'data'
+
    smartobject.define_storage(smartobject.JSONStorage())
    smartobject.define_storage(smartobject.RedisStorage(), 'r1')
 
@@ -57,8 +59,11 @@ How to implement this with SmartObject? Just a few lines of code:
    people.set_prop('John', 'sex', 'male')
    people.set_prop('Jane', 'sex', 'female')
 
+   from pprint import pprint
+   pprint(people.serialize('Jane'))
+
    # or multiple props with dict
-   people.set_prop('Jack', { 'sex', 'male' })
+   jack.set_prop({ 'sex': 'male' })
 
    people.save()
    jack.save()
@@ -71,7 +76,10 @@ How to implement this with SmartObject? Just a few lines of code:
    # add Jack to factory
    people.create(obj=jack)
 
-   # consider heartbeat is collected to Redis via external service
+   # set Jack's heartbeat
+   jack.heartbeat = 100
+
+   # but consider heartbeat is collected to Redis via external service
    print('Heartbeat of Jack is: {}'.format(people.get('Jack').heartbeat))
 
 The file *person.yml* is a property map for the *Person* object. It can
@@ -92,6 +100,7 @@ The map for the above example looks like:
            - female
        store: true
    heartbeat:
+       type: float
        external: true
        store: r1
 

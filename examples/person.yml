@@ -1,0 +1,13 @@
+name:
+    pk: true
+sex:
+    type: str
+    choices:
+        - null
+        - male
+        - female
+    store: true
+heartbeat:
+    type: float
+    external: true
+    store: r1
