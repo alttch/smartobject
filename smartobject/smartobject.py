@@ -22,6 +22,9 @@ def val_to_boolean(s):
 
 
 class SmartObject(object):
+    """
+    Smart Object implementation class
+    """
 
     def __getattribute__(self, name):
         if not name.startswith('_') and config.auto_externals:
@@ -46,6 +49,14 @@ class SmartObject(object):
         return super().__setattr__(name, value)
 
     def load_property_map(self, property_map=None, override=False):
+        """
+        Load Smart Object property map
+
+        Args:
+            property_map: property map to load. Can be dict (used as-is), file
+                path or empty (class name + .yml is used for the file name)
+            override:
+        """
         if not hasattr(self, '_property_map'):
             self._property_map = {}
         if isinstance(property_map, dict):
@@ -64,6 +75,16 @@ class SmartObject(object):
                 self._property_map[k] = v
 
     def apply_property_map(self):
+        """
+        Apply loaded property map
+
+        Can be called only once, otherwise raises RuntimeError
+        """
+        try:
+            if self.__property_map_applied:
+                raise RuntimeError('Property map is already applied')
+        except AttributeError:
+            pass
         self.__serialize_map = {None: []}
         self.__primary_key_field = None
         self.__deleted = False
@@ -77,6 +98,7 @@ class SmartObject(object):
         self.__externals = {}
         self._object_factory = None
         self.__snapshot = None
+        self.__property_map_applied = True
         for i, v in self._property_map.items():
             if v is None:
                 v = {}
@@ -132,12 +154,22 @@ class SmartObject(object):
                 c=self.__class__.__name__, pk=self._get_primary_key()))
 
     def storage_get(self, prop):
+        """
+        Get property value from the storage
+
+        May be used in custom getters/setters for the external properties
+        """
         return self._format_value(
             prop,
             storage.get_storage(self._property_map[prop]['store']).get_prop(
                 self._get_primary_key(), prop))
 
     def storage_set(self, prop, value):
+        """
+        Save property value to the storage
+
+        May be used in custom getters/setters for the external properties
+        """
         storage.get_storage(self._property_map[prop]['store']).set_prop(
             self._get_primary_key(), prop, value)
 
@@ -260,11 +292,22 @@ class SmartObject(object):
                 else:
                     return False
 
-    def prepare_value(self, key, value):
+    def prepare_value(self, prop, value):
+        """
+        Prepare value before setting it to object property
+        """
         return value
 
-    def serialize(self, mode=None, allow__deleted=False):
-        if not allow__deleted: self.__check_deleted()
+    def serialize(self, mode=None, allow_deleted=False):
+        """
+        Serialize object
+
+        Args:
+            mode: serialization mode. if not specified, all object properties
+                are serialized
+            allow_deleted: allow serialization of the deleted object
+        """
+        if not allow_deleted: self.__check_deleted()
         with self.__lock:
             return {
                 key: self.serialize_prop(key)
@@ -273,14 +316,24 @@ class SmartObject(object):
 
     def serialize_prop(self, prop, target=None):
         """
+        Serialize object property
+
+        If method "serialize_{prop}" is defined in class, returns its value
+            instead
+
         Args:
             prop: object property to serialize
             target: smartobject.SERIALIZE_SAVE or SERIALIZE_SYNC
         """
-        return getattr(self, f'serialize_{prop}')(target=target) if hasattr(
-            self, f'serialize_{prop}') else getattr(self, prop)
+        try:
+            return getattr(self, f'serialize_{prop}')(target=target)
+        except AttributeError:
+            return getattr(self, prop)
 
     def load(self):
+        """
+        Load object data from the storage
+        """
         self.__check_deleted()
         logger.debug('Loading {c} {pk}'.format(c=self.__class__.__name__,
                                                pk=self._get_primary_key()))
@@ -295,6 +348,12 @@ class SmartObject(object):
             self.__modified[storage_id].clear()
 
     def sync(self, force=False):
+        """
+        Sync object data with synchroizer
+
+        Args:
+            force: force sync even if object is not modified
+        """
         self.__check_deleted()
         sync_tasks = {}
         with self.__lock:
@@ -313,6 +372,12 @@ class SmartObject(object):
         return True
 
     def save(self, force=False):
+        """
+        Save object data to storage
+
+        Args:
+            force: force save even if object is not modified
+        """
         self.__check_deleted()
         pk = self._get_primary_key()
         logger.debug('Saving {c} {pk}'.format(c=self.__class__.__name__, pk=pk))
@@ -338,6 +403,14 @@ class SmartObject(object):
                     self.__modified[storage_id].clear()
 
     def snapshot_create(self):
+        """
+        Create snapshot of object properties
+
+        Snapshot is also saved to internal object variable
+
+        Returns:
+            snapshot dict
+        """
         with self.__lock:
             snapshot = {
                 key: getattr(self, key)
@@ -348,12 +421,24 @@ class SmartObject(object):
             return snapshot.copy()
 
     def snapshot_rollback(self, snapshot=None):
+        """
+        Restore objct properties from the snapshot
+
+        Args:
+            snapshot: snapshot dict, if not defined, internal object variable
+                is used
+        Raises:
+            ValueError: no snapshot data found
+        """
         with self.__lock:
             if self.__snapshot is None and shapsnot is None:
                 raise ValueError('No snapshot created')
             self.set_prop(value=snapshot if snapshot else self.__snapshot)
 
     def delete(self, _call_factory=True):
+        """
+        Delete object
+        """
         pk = self._get_primary_key()
         if self._object_factory and _call_factory:
             self._object_factory.delete(pk)
@@ -372,4 +457,14 @@ class SmartObject(object):
 
     @property
     def deleted(self):
+        """
+        Is object deleted or not
+        """
         return self.__deleted
+
+    @property
+    def alive(self):
+        """
+        Is object alive
+        """
+        return not self.__deleted

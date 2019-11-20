@@ -276,6 +276,9 @@ def test_factory():
     factory.set_prop(pk, {'personal_code': '0xFF'})
     factory.save()
     factory.save(pk, force=True)
+    factory.serialize(pk)
+    s = employee.serialize('salary')
+    assert len(s) == 2
     with pytest.raises(RuntimeError):
         employee = factory.create(name='John Doe')
     employee = factory.create(name='John Doe', override=True, load=False)
@@ -306,6 +309,18 @@ def test_snapshots():
         employee.set_prop({'salary': 150, 'personal_code': 'x'})
     assert employee.salary == 100
 
+def test_apply_property_map_twice():
+    employee = Employee('John Doe')
+    with pytest.raises(RuntimeError):
+        employee.apply_property_map()
+
+def test_alive_deleted():
+    employee = Employee('John Doe')
+    assert employee.alive is True
+    assert employee.deleted is False
+    employee.delete()
+    assert employee.alive is False
+    assert employee.deleted is True
 
 import os
 os.system('mkdir -p test_data && rm -rf test_data/*')

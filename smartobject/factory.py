@@ -109,7 +109,13 @@ class SmartObjectFactory:
             pk: object primary key, required. Other arguments are passed to
                 SmartObject.set_prop as-is
         """
-        self.get(pk).set_prop(*args, **kwargs)
+        return self.get(pk).set_prop(*args, **kwargs)
+
+    def serialize(self, pk, *args, **kwargs):
+        """
+        Serialize object
+        """
+        return self.get(pk).serialize(*args, **kwargs)
 
     def delete(self, pk):
         """
