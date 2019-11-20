@@ -9,12 +9,27 @@ storages = {}
 
 
 def define_storage(storage, id=None):
+    """
+    Define new object storage
+
+    The storage must implement methods of AbstractStorage class
+
+    Args:
+        storage: storage object
+        id: storage id, if not specified, default storage is defined
+    """
     if id is not None and not isinstance(id, str) and not isinstance(id, int):
         raise ValueError('Storage ID must be string or integer')
     storages[id] = storage
 
 
 def get_storage(id=None):
+    """
+    Get object storage
+
+    Args:
+        id: storage id, if not specified, default storage is returned
+    """
     try:
         return storages[id]
     except KeyError:
@@ -22,32 +37,89 @@ def get_storage(id=None):
 
 
 def purge():
+    """
+    Purge all deleted objects from all storages
+
+    Returns:
+        dict { storage_id: objects_purged }
+    """
     return {s: v.purge() for s, v in storages.items()}
 
 
 class AbstractStorage:
+    """
+    Abstract storage class which can be used as storage template
+    """
 
-    def load(self, *args, **kwargs):
+    def load(self, pk, **kwargs):
+        """
+        Load object data from the storage
+
+        Args:
+            pk: object primary key
+        """
         return {}
 
     def save(self, pk, data, modified, **kwargs):
+        """
+        Save object data to the storage
+
+        Args:
+            pk: object primary key
+            data: full object data
+            modified: modified properties only
+        """
         if data or modified:
             raise RuntimeError('Not implemented')
 
-    def delete(self, *args, **kwargs):
+    def delete(self, pk, props, **kwargs):
+        """
+        Delete object data from the storage
+
+        Args:
+            pk: object primary key
+            props: list of object properties mapped to store
+        """
         raise RuntimeError('Not implemented')
 
     def get_prop(self, pk, prop, **kwargs):
+        """
+        Get single object property from the storage
+
+        Must be implemented if external properties are mapped
+
+        Args:
+            pk: object primary key
+            prop: object property
+        """
         raise RuntimeError('Not implemented')
 
     def set_prop(self, pk, prop, value, **kwargs):
+        """
+        Save single object property to the storage
+
+        Must be implemented if external properties are mapped
+
+        Args:
+            pk: object primary key
+            prop: object property
+            value: property value
+        """
         raise RuntimeError('Not implemented')
 
     def purge(self, **kwargs):
+        """
+        Purge deleted objects
+        """
         return 0
 
 
 class DummyStorage(AbstractStorage):
+    """
+    Dummy storage class with empty methods
+
+    Does nothing, useful for testing
+    """
 
     def save(self, *args, **kwargs):
         return True
@@ -57,8 +129,26 @@ class DummyStorage(AbstractStorage):
 
 
 class RedisStorage(AbstractStorage):
+    """
+    Redis storage
+
+    Implements get_prop/set_prop methods, can be used for external properties
+
+    Can not save/load objects
+
+    Stores object properties in format {pk}/{prop}
+
+    Deletes properties from Redis server when object is deleted
+    """
 
     def __init__(self, host='localhost', port=6379, db=0, **kwargs):
+        """
+        Args:
+            host: Redis host
+            port: Redis port
+            db: Redis DB ID
+            **kwargs: passed to Python redis module as-is
+        """
         import redis
         self.r = redis.Redis(host=host, port=port, db=db, **kwargs)
 
@@ -73,8 +163,26 @@ class RedisStorage(AbstractStorage):
 
 
 class SQLAStorage(AbstractStorage):
+    """
+    RDBMS storage via SQLAlchemy
+
+    Implements get_prop/set_prop methods, can be used for external properties
+
+    Can save/load objects
+    
+    The table for objects must be created manually before the class methods can
+    work
+    """
 
     def __init__(self, db, table, pk_field='id'):
+        """
+        Args:
+            db: either SQLAlchemy instance, which implements "execute" method
+                (engine, connection) or callable (function) which returns such
+                instance on demand
+            table: database table
+            pk_field: primary key field in table (default: id)
+        """
         self.db = db
         self.table = table
         self.sa = importlib.import_module('sqlalchemy')
@@ -168,25 +276,36 @@ class SQLAStorage(AbstractStorage):
 
 
 class AbstractFileStorage(AbstractStorage):
+    """
+    Abstract class for file-based storages
+
+    Has the following properties:
+
+    allow_empty: if no object data file is found, return empty data (defalt:
+        True)
+    instant_delete: delete object files instantly (default: True)
+
+    File-based storages usually don't implement get_prop/set_prop methods
+    """
 
     def __init__(self):
         self.dir = None
-        self.ext = 'dat'
-        self.binary = False
+        self._ext = 'dat'
+        self._binary = False
         self.allow_empty = True
         self.instant_delete = True
-        self.files_to_delete = set()
+        self._files_to_delete = set()
         self.__lock = threading.RLock()
 
     def save(self, pk, data={}, modified={}, **kwargs):
         fname = (self.dir if self.dir is not None else config.storage_dir
-                ) + '/' + pk.replace('/', '___') + '.' + self.ext
+                ) + '/' + pk.replace('/', '___') + '.' + self._ext
         with self.__lock:
             try:
-                self.files_to_delete.remove(fname)
+                self._files_to_delete.remove(fname)
             except KeyError:
                 pass
-            with open(fname, 'w' + ('b' if self.binary else '')) as fh:
+            with open(fname, 'w' + ('b' if self._binary else '')) as fh:
                 fh.write(self.dumps(data))
             return True
 
@@ -195,8 +314,8 @@ class AbstractFileStorage(AbstractStorage):
             try:
                 with open(
                     (self.dir if self.dir is not None else config.storage_dir) +
-                        '/' + str(pk).replace('/', '___') + '.' + self.ext,
-                        'r' + ('b' if self.binary else '')) as fh:
+                        '/' + str(pk).replace('/', '___') + '.' + self._ext,
+                        'r' + ('b' if self._binary else '')) as fh:
                     return self.loads(fh.read())
             except FileNotFoundError:
                 if self.allow_empty: return {}
@@ -205,7 +324,7 @@ class AbstractFileStorage(AbstractStorage):
     def delete(self, pk, props, **kwargs):
         with self.__lock:
             fname = (self.dir if self.dir is not None else config.storage_dir
-                    ) + '/' + str(pk).replace('/', '___') + '.' + self.ext
+                    ) + '/' + str(pk).replace('/', '___') + '.' + self._ext
             if self.instant_delete:
                 import os
                 try:
@@ -214,27 +333,37 @@ class AbstractFileStorage(AbstractStorage):
                 except:
                     return False
             else:
-                self.files_to_delete.add(fname)
+                self._files_to_delete.add(fname)
 
     def purge(self, **kwargs):
         import os
         with self.__lock:
             c = 0
-            for fname in self.files_to_delete:
+            for fname in self._files_to_delete:
                 try:
                     os.unlink(fname)
                     c += 1
                 except:
                     pass
-            self.files_to_delete.clear()
+            self._files_to_delete.clear()
             return c
 
 
 class JSONStorage(AbstractFileStorage):
+    """
+    Stores object data in JSON format
+
+    Uses rapidjson module if installed, otherwise fallbacks to default
+    """
 
     def __init__(self, pretty=False):
+        """
+        Args:
+            pretty: if True, store pretty-formatted JSON (indent, sort keys),
+                default is False
+        """
         super().__init__()
-        self.ext = 'json'
+        self._ext = 'json'
         try:
             j = importlib.import_module('rapidjson')
         except:
@@ -245,32 +374,48 @@ class JSONStorage(AbstractFileStorage):
 
 
 class YAMLStorage(AbstractFileStorage):
+    """
+    Stores object data in YAML format
 
-    def __init__(self, pretty=False):
+    Requires pyyaml module
+    """
+
+    def __init__(self, pretty=True):
+        """
+        Args: pretty: if True, store pretty-formatted YAML, default is True
+        """
         super().__init__()
-        self.ext = 'yml'
+        self._ext = 'yml'
         yaml = importlib.import_module('yaml')
         self.loads = yaml.load
         self.dumps = partial(yaml.dump, default_flow_style=not pretty)
 
 
 class PickleStorage(AbstractFileStorage):
+    """
+    Stores object data in Python pickle format
+    """
 
     def __init__(self):
         super().__init__()
-        self.ext = 'p'
-        self.binary = True
+        self._ext = 'p'
+        self._binary = True
         pickle = importlib.import_module('pickle')
         self.loads = pickle.loads
         self.dumps = pickle.dumps
 
 
 class MessagePackStorage(AbstractFileStorage):
+    """
+    Stores object data in MessagePack format
+
+    Requires msgpack-python module
+    """
 
     def __init__(self):
         super().__init__()
-        self.ext = 'msgpack'
-        self.binary = True
+        self._ext = 'msgpack'
+        self._binary = True
         self.msgpack = importlib.import_module('msgpack')
         self.loads = partial(self.msgpack.loads, raw=False)
 
@@ -279,11 +424,16 @@ class MessagePackStorage(AbstractFileStorage):
 
 
 class CBORStorage(AbstractFileStorage):
+    """
+    Stores object data in CBOR format
 
-    def __init__(self, pretty=False):
+    Requires cbor module
+    """
+
+    def __init__(self):
         super().__init__()
-        self.ext = 'cbor'
-        self.binary = True
+        self._ext = 'cbor'
+        self._binary = True
         cbor = importlib.import_module('cbor')
         self.loads = cbor.loads
         self.dumps = cbor.dumps
