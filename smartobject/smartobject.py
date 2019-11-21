@@ -475,6 +475,8 @@ class SmartObject(object):
         Delete object
         """
         pk = self._get_primary_key()
+        logger.debug('Deleting {c} {pk}'.format(c=self.__class__.__name__,
+                                              pk=pk))
         if self._object_factory and _call_factory and pk is not None:
             self._object_factory.delete(pk)
         else:

@@ -51,7 +51,8 @@ class SmartObjectFactory:
                 raise RuntimeError(f'Object already exists: {pk}')
             self._objects[pk] = obj
             obj._object_factory = self
-            logger.debug('Added object {self._object_class.__name__} {pk}')
+            logger.debug(
+                f'Added object {self._object_class.__name__} {pk} to factory')
 
         return obj
 
@@ -114,6 +115,8 @@ class SmartObjectFactory:
         from . import storage
         with self.__lock:
             for f in storage.get_storage(storage_id).list(**kwargs):
+                logging.debug(
+                    f'Creating object {self._object_class.__name__} from {f}')
                 o = self._object_class(**kwargs)
                 o.load(fname=f, allow_empty=False)
                 self.create(obj=o, override=override)
@@ -179,6 +182,7 @@ class SmartObjectFactory:
         """
         Remove all objects in factory
         """
+        logging.debug(f'Clearing factory objects {self._object_class.__name__}')
         with self.__lock:
             self._objects.clear()
 
@@ -194,6 +198,9 @@ class SmartObjectFactory:
             **kwargs: passed to storage.cleanup() as-is
         """
         from . import storage
+        logging.debug(
+            f'Objects {self._object_class.__name__} storage {storage_id} cleanup'
+        )
         with self.__lock:
             return storage.get_storage(storage_id).cleanup(
                 list(self.get()), **kwargs)
@@ -205,6 +212,8 @@ class SmartObjectFactory:
         Args:
             pk: object primary key, required
         """
+        logging.debug(
+            f'Removing objects {self._object_class.__name__} {pk} from factory')
         with self.__lock:
             if _obj is None:
                 _obj = self.get(pk)
