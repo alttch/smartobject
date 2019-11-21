@@ -145,25 +145,27 @@ class RedisStorage(AbstractStorage):
     Deletes properties from Redis server when object is deleted
     """
 
-    def __init__(self, host='localhost', port=6379, db=0, **kwargs):
+    def __init__(self, host='localhost', port=6379, db=0, prefix='', **kwargs):
         """
         Args:
             host: Redis host
             port: Redis port
             db: Redis DB ID
+            prefix: record prefix
             **kwargs: passed to Python redis module as-is
         """
         import redis
         self.r = redis.Redis(host=host, port=port, db=db, **kwargs)
+        self.prefix = prefix
 
     def get_prop(self, pk, prop, **kwargs):
-        return self.r.get(f'{pk}/{prop}')
+        return self.r.get(f'{self.prefix}{pk}/{prop}')
 
     def set_prop(self, pk, prop, value, **kwargs):
-        self.r.set(f'{pk}/{prop}', value)
+        self.r.set(f'{self.prefix}{pk}/{prop}', value)
 
     def delete(self, pk, props, **kwargs):
-        self.r.delete(*[f'{pk}/{prop}' for prop in props])
+        self.r.delete(*[f'{self.prefix}{pk}/{prop}' for prop in props])
 
 
 class SQLAStorage(AbstractStorage):
