@@ -89,7 +89,7 @@ class SmartObject(object):
         self.__primary_key_field = None
         self.__deleted = False
         self.__modified = {None: set()}
-        self.__storages = set()
+        self.__storages = []
         self.__storage_map = {}
         self.__modified_for_sync = {None: set()}
         self.__sync_always = {None: set()}
@@ -107,7 +107,7 @@ class SmartObject(object):
                 tp = v['type']
                 if tp is not None:
                     v['type'] = eval(tp) if isinstance(tp, str) else tp
-            if v.get('pk') is True:
+            if v.get('pk'):
                 if self.__primary_key_field is not None:
                     raise RuntimeError('Multiple primary keys defined')
                 else:
@@ -136,7 +136,15 @@ class SmartObject(object):
                     storage_id = None
                     v['store'] = None
                 self.__modified.setdefault(storage_id, set()).add(i)
-                self.__storages.add(storage_id)
+                # make sure pk storage is first to let it generate pk if
+                # doesn't exists
+                if v.get('pk'):
+                    if storage_id in self.__storages and self.__storages[
+                            0] != storage_id:
+                        self.__storages.remove(storage_id)
+                        self.__storages.insert(0, storage_id)
+                elif storage_id not in self.__storages:
+                    self.__storages.append(storage_id)
                 self.__storage_map.setdefault(storage_id, set()).add(i)
                 if v.get('external'):
                     self.__externals[i] = storage_id
@@ -403,7 +411,7 @@ class SmartObject(object):
             pk = self._get_primary_key()
             logger.debug('Saving {c} {pk}'.format(c=self.__class__.__name__,
                                                   pk=pk))
-            for storage_id in self.__modified:
+            for storage_id in self.__storages:
                 if self.__modified[storage_id] or force:
                     data = {
                         key:
