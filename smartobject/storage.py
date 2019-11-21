@@ -286,6 +286,8 @@ class AbstractFileStorage(AbstractStorage):
         instant_delete: delete object files instantly (default: True)
 
     File-based storages usually don't implement get_prop/set_prop methods
+
+    File-based storages have additional "fname" property for load() method
     """
 
     def __init__(self):
@@ -309,17 +311,33 @@ class AbstractFileStorage(AbstractStorage):
                 fh.write(self.dumps(data))
             return True
 
-    def load(self, pk, **kwargs):
+    def load(self, pk=None, fname=None, allow_empty=None, **kwargs):
+        if pk is None and fname is None:
+            raise ValueError('Either pk or fname must be specified')
         with self.__lock:
             try:
-                with open(
-                    (self.dir if self.dir is not None else config.storage_dir) +
-                        '/' + str(pk).replace('/', '___') + '.' + self._ext,
-                        'r' + ('b' if self._binary else '')) as fh:
+                if fname is None:
+                    fname = (self.dir if self.dir is not None else
+                             config.storage_dir) + '/' + str(pk).replace(
+                                 '/', '___') + '.' + self._ext
+                with open(fname, 'r' + ('b' if self._binary else '')) as fh:
                     return self.loads(fh.read())
             except FileNotFoundError:
-                if self.allow_empty: return {}
+                if (self.allow_empty and
+                        allow_empty is not False) or allow_empty is True:
+                    return {}
                 raise
+
+    def list(self, pattern=None):
+        """
+        List object files in storage
+
+        Args:
+            pattern: file pattern (default: *.{self.ext})
+        """
+        from pathlib import Path
+        return Path(self.dir if self.dir is not None else config.storage_dir
+                   ).glob(pattern if pattern is not None else f'*.{self._ext}')
 
     def delete(self, pk, props, **kwargs):
         with self.__lock:

@@ -17,7 +17,7 @@ smartobject.define_sync(smartobject.DummySync())
 class Person(smartobject.SmartObject):
 
     def __init__(self, name, etest=None):
-        self.name = name
+        self.name = self.prepare_value('name', name)
         self.load_property_map('person.yml')
         if etest:
             self.load_property_map({
@@ -29,10 +29,16 @@ class Person(smartobject.SmartObject):
             })
         self.apply_property_map()
 
+    def prepare_value(self, prop, value):
+        if prop == 'name':
+            if value is not None and value.find('/') != -1:
+                raise ValueError(f'name contains invalid characters: {value}')
+        return value
+
 
 class Employee(Person):
 
-    def __init__(self, name, etest=None):
+    def __init__(self, name=None, etest=None):
         self.load_property_map()
         self.load_property_map({
             'salary': {
@@ -54,7 +60,15 @@ class Employee(Person):
     @department.setter
     def department(self, value):
         self._department = value
-        self.key = '{}/{}'.format(value, self.name.replace(' ', '_').lower())
+        self.update_pk()
+
+    def update_pk(self):
+        if self.name is not None:
+            self.id = '{}/{}'.format(self._department,
+                                      self.name.replace(' ', '_').lower())
+
+    def after_load(self):
+        self.update_pk()
 
 
 def test_create_employee():
@@ -63,7 +77,7 @@ def test_create_employee():
     data = employee.serialize()
     assert data['salary'] == 1000 * 100
     assert data['name'] == 'John Doe'
-    assert data['key'] == 'coders/john_doe'
+    assert data['id'] == 'coders/john_doe'
     assert data['can_code'] is None
 
 
@@ -102,14 +116,14 @@ def test_db_storage():
 
     get_connection().execute("""
     create table pr (
-        name varchar(30) not null,
+        id varchar(30) not null,
         projects_created int not null,
         heartbeat int,
-        primary key(name)
+        primary key(id)
         )
     """)
 
-    storage = smartobject.SQLAStorage(get_connection, 'pr', 'name')
+    storage = smartobject.SQLAStorage(get_connection, 'pr', 'id')
     storage.allow_empty = False
     smartobject.define_storage(storage, 'db1')
 
@@ -272,7 +286,7 @@ def test_factory():
     smartobject.define_storage(smartobject.DummyStorage(), 'db1')
     factory = smartobject.SmartObjectFactory(Employee)
     employee = factory.create(name='John Doe')
-    pk = employee.key
+    pk = employee.id
     factory.set_prop(pk, {'personal_code': '0xFF'})
     factory.save()
     factory.save(pk, force=True)
@@ -289,7 +303,9 @@ def test_factory():
     employee = factory.create(name='John Doe', override=True, load=False)
     employee.delete()
     with pytest.raises(KeyError):
-        factory.get(employee.key)
+        factory.get(employee.id)
+    employee = Employee(name='Jane Doe')
+    factory.append(employee)
 
 
 def test_snapshots():
@@ -309,10 +325,12 @@ def test_snapshots():
         employee.set_prop({'salary': 150, 'personal_code': 'x'})
     assert employee.salary == 100
 
+
 def test_apply_property_map_twice():
     employee = Employee('John Doe')
     with pytest.raises(RuntimeError):
         employee.apply_property_map()
+
 
 def test_alive_deleted():
     employee = Employee('John Doe')
@@ -322,7 +340,29 @@ def test_alive_deleted():
     assert employee.alive is False
     assert employee.deleted is True
 
-import os
-os.system('mkdir -p test_data && rm -rf test_data/*')
 
-test_factory()
+def test_load_from_dir():
+    clean()
+    smartobject.define_storage(smartobject.JSONStorage())
+    smartobject.define_storage(smartobject.DummyStorage(), 'db1')
+    factory = smartobject.SmartObjectFactory(Employee)
+    factory.create(name='John Doe')
+    factory.create(name='Jane Doe')
+    e = factory.create(name='Jack Daniels')
+    e.set_prop('salary', 150)
+    key = e.id
+    factory.save()
+    factory.clear()
+    with pytest.raises(KeyError):
+        factory.get(key)
+    factory.load_from_files()
+    assert len(factory.get()) == 3
+    assert factory.get(key).salary == 150 * 100
+
+
+def clean():
+    import os
+    os.system('mkdir -p test_data && rm -rf test_data/*')
+
+
+clean()

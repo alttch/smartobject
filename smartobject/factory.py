@@ -43,6 +43,19 @@ class SmartObjectFactory:
             obj._object_factory = self
         return obj
 
+    def append(self, obj, load=False, override=False):
+        """
+        Append object to factory
+
+        Same as create(obj=obj)
+
+        Args:
+            obj: append existing Smart Object
+            load: call obj.load() before append
+            override: allow overriding existing objects
+        """
+        return self.create(obj=obj, load=load, override=override)
+
     def get(self, pk=None):
         """
         Get Smart Object from factory
@@ -70,6 +83,27 @@ class SmartObjectFactory:
         else:
             for i, o in self.get().items():
                 o.load()
+
+    def load_from_files(self,
+                        storage_id=None,
+                        pattern=None,
+                        override=False,
+                        **kwargs):
+        """
+        Load all objects from specified file storage
+
+        Args:
+            storage_id: storage ID
+            pattern: file pattern
+            override: allow overriding existing objects
+            **kwargs: passed to object constructor as-is
+        """
+        from . import storage
+        with self.__lock:
+            for f in storage.get_storage(storage_id).list(**kwargs):
+                o = self._object_class(**kwargs)
+                o.load(fname=str(f), allow_empty=False)
+                self.create(obj=o, override=override)
 
     def save(self, pk=None, force=False):
         """
@@ -127,6 +161,13 @@ class SmartObjectFactory:
         o = self.get(pk)
         self.remove(pk, _obj=o)
         o.delete(_call_factory=False)
+
+    def clear(self):
+        """
+        Remove all objects in factory
+        """
+        with self.__lock:
+            self._objects.clear()
 
     def remove(self, pk, _obj=None):
         """

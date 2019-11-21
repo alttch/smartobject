@@ -2,13 +2,14 @@ department:
   type: str
   default: coders
   serialize: info
+  store: true
 personal_code:
   type: int
   accept-hex: true
   store: true
   sync: true
   sync-always: true
-key:
+id:
   pk: true
   read-only: true
 projects_created:

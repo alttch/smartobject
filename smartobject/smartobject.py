@@ -336,9 +336,14 @@ class SmartObject(object):
         except AttributeError:
             return getattr(self, prop)
 
-    def load(self):
+    def load(self, **kwargs):
         """
         Load object data from the storage
+
+        Calls self.after_load() method after loading
+
+        Args:
+            **kwargs: passed to storage as-is
         """
         with self.__lock:
             self.__check_deleted()
@@ -348,11 +353,20 @@ class SmartObject(object):
                 self.set_prop(value={
                     key: value
                     for key, value in storage.get_storage(storage_id).load(
-                        pk=self._get_primary_key()).items()
+                        pk=self._get_primary_key(), **kwargs).items()
                     if not self._property_map[key].get('external')
                 },
+                              sync=False,
                               _allow_readonly=True)
                 self.__modified[storage_id].clear()
+            self.after_load()
+            self.sync()
+
+    def after_load(self):
+        """
+        Called after load method
+        """
+        pass
 
     def sync(self, force=False):
         """
