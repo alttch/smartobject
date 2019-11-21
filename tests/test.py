@@ -375,7 +375,7 @@ def test_load_from_dir():
     factory.clear()
     with pytest.raises(KeyError):
         factory.get(key)
-    factory.load_from_files()
+    factory.load_all()
     assert len(factory.get()) == 3
     assert factory.get(key).salary == 150 * 100
 
@@ -387,7 +387,7 @@ def test_t2_save_to_file():
     i = factory.create().id
     assert i is not None
     factory.clear()
-    factory.load_from_files()
+    factory.load_all()
     factory.get(i)
 
 
@@ -420,6 +420,26 @@ def test_t2_save_to_db():
     assert obj.password == '123'
 
 
+def test_t2_load_from_db():
+    clean()
+    db = _prepare_t2_db()
+    storage = smartobject.SQLAStorage(db, 't2')
+    smartobject.define_storage(storage)
+    factory = smartobject.SmartObjectFactory(T2, autosave=True)
+    ids = []
+    for i in range(3):
+        obj = factory.create()
+        obj.set_prop({'login': f'test{obj.id}', 'password': '123'}, save=True)
+        ids.append(obj.id)
+    assert len(ids) == 3
+    factory.clear()
+    factory.load_all()
+    for i in ids:
+        o = factory.get(i)
+        assert o.password == '123'
+        assert o.login == f'test{o.id}'
+
+
 def clean():
     import os
     os.system('mkdir -p test_data && rm -rf test_data/*')
@@ -438,7 +458,7 @@ def test_file_cleanup():
         p = Path(f'test_data/coders___{n.lower()}.json')
         assert p.exists() and p.is_file()
     factory.clear()
-    factory.load_from_files()
+    factory.load_all()
     factory.get('coders/mike')
     factory.get('coders/betty')
     factory.remove('coders/mike')
@@ -448,7 +468,7 @@ def test_file_cleanup():
         factory.get('coders/betty')
     factory.cleanup()
     factory.clear()
-    factory.load_from_files()
+    factory.load_all()
     with pytest.raises(KeyError):
         factory.get('coders/mike')
         factory.get('coders/betty')

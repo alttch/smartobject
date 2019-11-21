@@ -98,28 +98,34 @@ class SmartObjectFactory:
             for i, o in self.get().items():
                 o.load()
 
-    def load_from_files(self,
-                        storage_id=None,
-                        pattern=None,
-                        override=False,
-                        **kwargs):
+    def load_all(self,
+                 storage_id=None,
+                 load_kwargs={},
+                 override=False,
+                 **kwargs):
         """
-        Load all objects from specified file storage
+        Load all objects from specified storage
 
         Args:
             storage_id: storage ID
-            pattern: file pattern
+            load_kwargs: dict of kwargs, passed to storage.load_all() method
             override: allow overriding existing objects
             **kwargs: passed to object constructor as-is
         """
         from . import storage
         with self.__lock:
-            for f in storage.get_storage(storage_id).list(**kwargs):
-                logging.debug(
-                    f'Creating object {self._object_class.__name__} from {f}')
-                o = self._object_class(**kwargs)
-                o.load(fname=f, allow_empty=False)
-                self.create(obj=o, override=override)
+            for d in storage.get_storage(storage_id).load_all(**load_kwargs):
+                if 'data' in d:
+                    logger.debug(
+                        f'Creating object {self._object_class.__name__}')
+                    o = self._object_class(**kwargs)
+                    o.set_prop(d['data'],
+                               _allow_readonly=True,
+                               sync=False,
+                               save=False)
+                    o.after_load(**d.get('info', {}))
+                    o.sync()
+                    self.create(obj=o, override=override, save=False)
 
     def save(self, pk=None, force=False):
         """
@@ -182,7 +188,7 @@ class SmartObjectFactory:
         """
         Remove all objects in factory
         """
-        logging.debug(f'Clearing factory objects {self._object_class.__name__}')
+        logger.debug(f'Clearing factory objects {self._object_class.__name__}')
         with self.__lock:
             self._objects.clear()
 
@@ -198,9 +204,8 @@ class SmartObjectFactory:
             **kwargs: passed to storage.cleanup() as-is
         """
         from . import storage
-        logging.debug(
-            f'Objects {self._object_class.__name__} storage {storage_id} cleanup'
-        )
+        logger.debug(
+            f'{self._object_class.__name__} storage {storage_id} cleanup')
         with self.__lock:
             return storage.get_storage(storage_id).cleanup(
                 list(self.get()), **kwargs)
@@ -212,7 +217,7 @@ class SmartObjectFactory:
         Args:
             pk: object primary key, required
         """
-        logging.debug(
+        logger.debug(
             f'Removing objects {self._object_class.__name__} {pk} from factory')
         with self.__lock:
             if _obj is None:

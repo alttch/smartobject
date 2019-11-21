@@ -2,8 +2,11 @@ from . import config
 
 import importlib
 import threading
+import logging
 
 from functools import partial
+
+logger = logging.getLogger('smartobject')
 
 storages = {}
 
@@ -60,6 +63,19 @@ class AbstractStorage:
             pk: object primary key
         """
         return {}
+
+    def load_all(self, **kwargs):
+        """
+        Load object data for all objecta and return it as list generator
+
+        Each object in list is a dictionary with fields:
+            data: object data
+            info: additional info, e.g. fname the data is loaded from
+
+        info is passed to object after_load() method as kwargs
+        """
+        while False:
+            yield {}
 
     def save(self, pk, data, modified, **kwargs):
         """
@@ -238,6 +254,14 @@ class SQLAStorage(AbstractStorage):
             else:
                 return dict(result)
 
+    def load_all(self, **kwargs):
+        with self.__lock:
+            result = self.get_db().execute(f'select * from {self.table}')
+            while True:
+                d = result.fetchone()
+                if d is None: break
+                yield { 'data':  dict(d) }
+
     def get_prop(self, pk, prop, **kwargs):
         with self.__lock:
             result = self.get_db().execute(self.sa.text(
@@ -387,7 +411,7 @@ class AbstractFileStorage(AbstractStorage):
                     return {}
                 raise
 
-    def list(self, pattern=None):
+    def list(self, pattern=None, **kwargs):
         """
         List object files in storage
 
@@ -397,6 +421,17 @@ class AbstractFileStorage(AbstractStorage):
         from pathlib import Path
         return Path(self.dir if self.dir is not None else config.storage_dir
                    ).glob(pattern if pattern is not None else f'*.{self._ext}')
+
+    def load_all(self, pattern=None, **kwargs):
+        with self.__lock:
+            for f in self.list(pattern=pattern):
+                logging.debug(f'Loading object data from {f}')
+                yield {
+                    'info': {
+                        'fname': f
+                    },
+                    'data': self.load(fname=f, allow_empty=False)
+                }
 
     def cleanup(self, pks, pattern=None):
         ppks = [self.prepare_pk(pk) for pk in pks]
