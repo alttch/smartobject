@@ -9,8 +9,11 @@ can_code:
   store: true
   type: bool
 password:
+  type: str
   log-level: 30
   log-hide-value: true
+  min: 3
+  max: 10
 sex:
   type: str
   choices:

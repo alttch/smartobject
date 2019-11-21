@@ -189,6 +189,7 @@ class SmartObject(object):
 
     def _format_value(self, prop, value):
         p = self._property_map[prop]
+
         if 'type' in p:
             tp = p.get('type')
             try:
@@ -209,6 +210,19 @@ class SmartObject(object):
                             else:
                                 raise
                     else:
+                        raise ValueError
+                if (tp == str or tp == bytes) and value is not None:
+                    mn = p.get('min')
+                    mx = p.get('max')
+                    l = len(value)
+                    if (mn is not None and l < mn) or (mx is not None and
+                                                       l > mx):
+                        raise ValueError
+                elif (tp == int or tp == float) and value is not None:
+                    mn = p.get('min')
+                    mx = p.get('max')
+                    if (mn is not None and value < mn) or (mx is not None and
+                                                           value > mx):
                         raise ValueError
             except ValueError:
                 raise ValueError(
@@ -476,7 +490,7 @@ class SmartObject(object):
         """
         pk = self._get_primary_key()
         logger.debug('Deleting {c} {pk}'.format(c=self.__class__.__name__,
-                                              pk=pk))
+                                                pk=pk))
         if self._object_factory and _call_factory and pk is not None:
             self._object_factory.delete(pk)
         else:

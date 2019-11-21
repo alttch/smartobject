@@ -262,6 +262,18 @@ def test_invalid_choice():
         employee.set_prop('sex', 'alien')
 
 
+def __xtest_set_min_max():
+    employee = Employee('John Doe')
+    with pytest.raises(ValueError):
+        employee.set_prop('projects_created', -1)
+    with pytest.raises(ValueError):
+        employee.set_prop('projects_created', 999999)
+    with pytest.raises(ValueError):
+        employee.set_prop('password', '1')
+    with pytest.raises(ValueError):
+        employee.set_prop('password', '1234567890123456890')
+
+
 def test_sync():
 
     class TestSync(smartobject.AbstractSync):

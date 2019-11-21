@@ -112,6 +112,24 @@ You may specify default property value:
       type: str
       default: "I am default"
 
+Minimums and maximums
+---------------------
+
+For the numeric types, "min" and "max" mapping options can be used to make sure
+value is in the desired range:
+
+.. code:: yaml
+
+   myprop1:
+      type: int
+      min: 0
+      max: 10
+
+Setting property value outside the range raises ValueError exception.
+
+For the strings and bytes, "min" and "max" can be used to make sure the value
+length is in the specified range.
+
 Read-only
 ---------
 

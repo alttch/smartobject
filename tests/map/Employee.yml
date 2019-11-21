@@ -17,3 +17,5 @@ projects_created:
   store: db1
   default: 0
   sync: true
+  min: 0
+  max: 10000
