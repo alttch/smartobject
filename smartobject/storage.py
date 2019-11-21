@@ -117,6 +117,20 @@ class AbstractStorage:
         """
         return 0
 
+    def cleanup(self, pks, **kwargs):
+        """
+        Cleanup storage
+
+        Deletes from storage all items which are not in provided list of
+        primary keys
+
+        Args:
+            pks: list of primary keys
+        Returns:
+            number of deleted items
+        """
+        raise RuntimeError('Not implemented')
+
 
 class DummyStorage(AbstractStorage):
     """
@@ -278,6 +292,25 @@ class SQLAStorage(AbstractStorage):
                     pk = result.lastrowid
             return pk
 
+    def cleanup(self, pks, **kwargs):
+        c = 0
+        todel = []
+        with self.__lock:
+            db = self.get_db()
+            result = db.execute(f'select {self.pk_field} from {self.table}')
+            while True:
+                d = result.fetchone()
+                if not d: break
+                pk = getattr(d, self.pk_field)
+                if pk not in pks:
+                    todel.append(pk)
+                    c += 1
+            for pk in todel:
+                db.execute(self.sa.text(f"""delete from
+                            {self.table} where {self.pk_field}=:pk"""),
+                           pk=pk)
+        return c
+
     def delete(self, pk, props, **kwargs):
         with self.__lock:
             return self.get_db().execute(self.sa.text(
@@ -329,15 +362,23 @@ class AbstractFileStorage(AbstractStorage):
                 fh.write(self.dumps(data))
             return pk
 
+    def prepare_pk(self, pk):
+        """
+        Converts primary key value to file name
+
+        By default, replaces "/" with "___"
+        """
+        return str(pk).replace('/', '___')
+
     def load(self, pk=None, fname=None, allow_empty=None, **kwargs):
         if pk is None and fname is None:
             raise ValueError('Either pk or fname must be specified')
         with self.__lock:
             try:
                 if fname is None:
-                    fname = (self.dir if self.dir is not None else
-                             config.storage_dir) + '/' + str(pk).replace(
-                                 '/', '___') + '.' + self._ext
+                    fname = (self.dir
+                             if self.dir is not None else config.storage_dir
+                            ) + '/' + self.prepare_pk(pk) + '.' + self._ext
                 with open(fname, 'r' + ('b' if self._binary else '')) as fh:
                     return self.loads(fh.read())
             except FileNotFoundError:
@@ -357,7 +398,16 @@ class AbstractFileStorage(AbstractStorage):
         return Path(self.dir if self.dir is not None else config.storage_dir
                    ).glob(pattern if pattern is not None else f'*.{self._ext}')
 
+    def cleanup(self, pks, pattern=None):
+        ppks = [self.prepare_pk(pk) for pk in pks]
+        for f in self.list(pattern=pattern):
+            if f.stem not in ppks:
+                f.unlink()
+
     def delete(self, pk, props, **kwargs):
+        """
+        Delete stored object
+        """
         with self.__lock:
             fname = (self.dir if self.dir is not None else config.storage_dir
                     ) + '/' + str(pk).replace('/', '___') + '.' + self._ext

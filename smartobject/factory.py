@@ -1,6 +1,8 @@
 import threading
 import logging
 
+logger = logging.getLogger('smartobject')
+
 
 class SmartObjectFactory:
     """
@@ -49,6 +51,8 @@ class SmartObjectFactory:
                 raise RuntimeError(f'Object already exists: {pk}')
             self._objects[pk] = obj
             obj._object_factory = self
+            logger.debug('Added object {self._object_class.__name__} {pk}')
+
         return obj
 
     def append(self, obj, load=False, save=None, override=False):
@@ -177,6 +181,22 @@ class SmartObjectFactory:
         """
         with self.__lock:
             self._objects.clear()
+
+    def cleanup(self, storage_id=None, **kwargs):
+        """
+        Cleanup object storage
+
+        Deletes from the specified storage all stored objects, which are not in
+        factory
+
+        Args:
+            storage_id: storage id to cleanup or None for default storage
+            **kwargs: passed to storage.cleanup() as-is
+        """
+        from . import storage
+        with self.__lock:
+            return storage.get_storage(storage_id).cleanup(
+                list(self.get()), **kwargs)
 
     def remove(self, pk, _obj=None):
         """

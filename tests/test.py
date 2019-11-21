@@ -379,8 +379,7 @@ def test_t2_save_to_file():
     factory.get(i)
 
 
-def test_t2_save_to_db():
-    clean()
+def _prepare_t2_db():
     db = sa.create_engine('sqlite:///test_data/t2.db')
     db.execute("""
     create table t2 (
@@ -389,15 +388,17 @@ def test_t2_save_to_db():
         password varchar(30)
         )
     """)
+    return db
 
+
+def test_t2_save_to_db():
+    clean()
+    db = _prepare_t2_db()
     storage = smartobject.SQLAStorage(db, 't2')
     smartobject.define_storage(storage)
     factory = smartobject.SmartObjectFactory(T2, autosave=True)
     obj = factory.create()
-    obj.set_prop({
-        'login': 'test',
-        'password': '123'
-        }, save=True)
+    obj.set_prop({'login': 'test', 'password': '123'}, save=True)
     i = obj.id
     assert i is not None
     factory.clear()
@@ -410,6 +411,60 @@ def test_t2_save_to_db():
 def clean():
     import os
     os.system('mkdir -p test_data && rm -rf test_data/*')
+
+
+def test_file_cleanup():
+    clean()
+    smartobject.define_storage(smartobject.JSONStorage())
+    smartobject.define_storage(smartobject.DummyStorage(), 'db1')
+    factory = smartobject.SmartObjectFactory(Employee)
+    names = ['Mike', 'Betty', 'Kate', 'John', 'Boris', 'Ivan']
+    for n in names:
+        factory.create(name=n)
+    factory.save()
+    for n in names:
+        p = Path(f'test_data/coders___{n.lower()}.json')
+        assert p.exists() and p.is_file()
+    factory.clear()
+    factory.load_from_files()
+    factory.get('coders/mike')
+    factory.get('coders/betty')
+    factory.remove('coders/mike')
+    factory.remove('coders/betty')
+    with pytest.raises(KeyError):
+        factory.get('coders/mike')
+        factory.get('coders/betty')
+    factory.cleanup()
+    factory.clear()
+    factory.load_from_files()
+    with pytest.raises(KeyError):
+        factory.get('coders/mike')
+        factory.get('coders/betty')
+    factory.clear()
+
+
+def test_db_cleanup():
+    clean()
+    db = _prepare_t2_db()
+    storage = smartobject.SQLAStorage(db, 't2')
+    smartobject.define_storage(storage)
+    factory = smartobject.SmartObjectFactory(T2, autosave=True)
+    o1 = factory.create()
+    o2 = factory.create()
+    o3 = factory.create()
+    o4 = factory.create()
+    o1.load()
+    o2.load()
+    o3.load()
+    o4.load()
+    factory.remove(o3.id)
+    o3.load()
+    factory.cleanup()
+    o1.load()
+    o2.load()
+    with pytest.raises(LookupError):
+        o3.load()
+    o4.load()
 
 
 clean()
