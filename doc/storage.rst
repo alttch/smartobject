@@ -120,6 +120,27 @@ You may use the following classes as prototypes for the own storages:
    :members:
    :show-inheritance:
 
+Loading all objects from storage
+================================
+
+Sometimes it's useful to preload all objects of the certain type. To make this
+possible, storages have *load_all()* method, which returns data for all objects
+in the specified storage.
+
+The data is returned as list generator, where each item is a dict with fields
+"data" - contains object data, and "info" - contains additional object info
+(e.g. file name the object is loaded from). "info" usually should be passed to
+object *after_load()* method as kwargs.
+
+:doc:`SmartObject factory <factory>` allows to do this in a few lines of code:
+
+.. code:: python
+
+   factory = smartobject.SmartObjectFactory(MyObjClass, autosave=True)
+   # if no storage_id arg is specified, objects are loaded from the default
+   # storage
+   factory.load_all()
+
 Auto-generated primary keys
 ===========================
 

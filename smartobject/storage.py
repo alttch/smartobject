@@ -416,7 +416,7 @@ class AbstractFileStorage(AbstractStorage):
         List object files in storage
 
         Args:
-            pattern: file pattern (default: *.{self.ext})
+            pattern: file pattern (default: \*.{self.ext})
         """
         from pathlib import Path
         return Path(self.dir if self.dir is not None else config.storage_dir
