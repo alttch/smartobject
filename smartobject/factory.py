@@ -100,7 +100,7 @@ class SmartObjectFactory:
 
     def load_all(self,
                  storage_id=None,
-                 load_kwargs={},
+                 load_opts={},
                  override=False,
                  **kwargs):
         """
@@ -108,13 +108,13 @@ class SmartObjectFactory:
 
         Args:
             storage_id: storage ID
-            load_kwargs: dict of kwargs, passed to storage.load_all() method
+            load_opts: dict of kwargs, passed to storage.load_all() method
             override: allow overriding existing objects
             **kwargs: passed to object constructor as-is
         """
         from . import storage
         with self.__lock:
-            for d in storage.get_storage(storage_id).load_all(**load_kwargs):
+            for d in storage.get_storage(storage_id).load_all(**load_opts):
                 if 'data' in d:
                     logger.debug(
                         f'Creating object {self._object_class.__name__}')
