@@ -359,7 +359,7 @@ class SmartObject(object):
                               sync=False,
                               _allow_readonly=True)
                 self.__modified[storage_id].clear()
-            self.after_load()
+            self.after_load(**kwargs)
             self.sync()
 
     def after_load(self):
@@ -400,7 +400,7 @@ class SmartObject(object):
         """
         with self.__lock:
             self.__check_deleted()
-            pk = self._get_primary_key(_allow_null=False)
+            pk = self._get_primary_key()
             logger.debug('Saving {c} {pk}'.format(c=self.__class__.__name__,
                                                   pk=pk))
             for storage_id in self.__modified:
@@ -413,15 +413,21 @@ class SmartObject(object):
                         if 'store' in props and props['store'] == storage_id and
                         not props.get('external')
                     }
-                    storage.get_storage(storage_id).save(
-                        pk=pk,
-                        data=data,
-                        modified=data if force else {
-                            key: data[key]
-                            for key in self.__modified[storage_id]
-                            if key in data
-                        })
-                    self.__modified[storage_id].clear()
+                    s = storage.get_storage(storage_id)
+                    if pk is not None or s.generates_pk:
+                        npk = s.save(pk=pk,
+                                     data=data,
+                                     modified=data if force else {
+                                         key: data[key]
+                                         for key in self.__modified[storage_id]
+                                         if key in data
+                                     })
+                        self.__modified[storage_id].clear()
+                    if pk is None and npk is not None:
+                        pk = npk
+                        self.set_prop(self.__primary_key_field,
+                                      pk,
+                                      _allow_readonly=True)
 
     def snapshot_create(self):
         """

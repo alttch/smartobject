@@ -64,8 +64,8 @@ changed with *set_prop()* method.
 
 .. note::
 
-   While primary key is null, it's not possible to perform save and sync
-   operations on object.
+   While primary key is null, it's not possible to perform sync and save (for
+   certain types of storages) operations on object.
 
 Property type and value
 =======================

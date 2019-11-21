@@ -50,6 +50,7 @@ class AbstractStorage:
     """
     Abstract storage class which can be used as storage template
     """
+    generates_pk = False
 
     def load(self, pk, **kwargs):
         """
@@ -68,6 +69,9 @@ class AbstractStorage:
             pk: object primary key
             data: full object data
             modified: modified properties only
+
+        Returns:
+            object primary key
         """
         if data or modified:
             raise RuntimeError('Not implemented')
@@ -121,8 +125,8 @@ class DummyStorage(AbstractStorage):
     Does nothing, useful for testing
     """
 
-    def save(self, *args, **kwargs):
-        return True
+    def save(self, pk, data, modified, **kwargs):
+        return pk
 
     def delete(self, *args, **kwargs):
         return True
@@ -173,6 +177,7 @@ class SQLAStorage(AbstractStorage):
     The table for objects must be created manually before the class methods can
     work
     """
+    generates_pk = True
 
     def __init__(self, db, table, pk_field='id'):
         """
@@ -238,31 +243,38 @@ class SQLAStorage(AbstractStorage):
                 raise LookupError(f'Object {pk} not saved yet')
             return True
 
-    def save(self, pk, data={}, modified={}, **kwargs):
+    def save(self, pk=None, data={}, modified={}, **kwargs):
         with self.__lock:
             db = self.get_db()
             updates = [
                 '{}="{}"'.format(k, self._safe_format(v))
                 for k, v in modified.items()
             ]
-            result = db.execute(self.sa.text(
-                'update {table} set {update} where {pk_field}=:pk'.format(
-                    table=self.table,
-                    pk_field=self.pk_field,
-                    update=','.join(updates))),
-                                pk=pk)
-            if not result.rowcount:
-                fields = [self.pk_field]
-                values = ['"{}"'.format(self._safe_format(pk))]
+            if pk is not None:
+                result = db.execute(self.sa.text(
+                    'update {table} set {update} where {pk_field}=:pk'.format(
+                        table=self.table,
+                        pk_field=self.pk_field,
+                        update=','.join(updates))),
+                                    pk=pk)
+            if pk is None or not result.rowcount:
+                if pk is None:
+                    fields = []
+                    values = []
+                else:
+                    fields = [self.pk_field]
+                    values = ['"{}"'.format(self._safe_format(pk))]
                 for k, v in data.items():
                     fields.append(k)
                     values.append("{}".format(self._safe_format(v)))
-                db.execute(
+                result = db.execute(
                     'insert into {table} ({fields}) values ({values})'.format(
                         table=self.table,
                         fields=','.join(fields),
                         values=','.join(values)))
-            return True
+                if pk is None:
+                    pk = result.lastrowid
+            return pk
 
     def delete(self, pk, props, **kwargs):
         with self.__lock:
@@ -289,6 +301,7 @@ class AbstractFileStorage(AbstractStorage):
 
     File-based storages have additional "fname" property for load() method
     """
+    generates_pk = True
 
     def __init__(self):
         self.dir = None
@@ -299,7 +312,10 @@ class AbstractFileStorage(AbstractStorage):
         self._files_to_delete = set()
         self.__lock = threading.RLock()
 
-    def save(self, pk, data={}, modified={}, **kwargs):
+    def save(self, pk=None, data={}, modified={}, **kwargs):
+        if pk is None:
+            import uuid
+            pk = str(uuid.uuid4())
         fname = (self.dir if self.dir is not None else config.storage_dir
                 ) + '/' + pk.replace('/', '___') + '.' + self._ext
         with self.__lock:
@@ -309,7 +325,7 @@ class AbstractFileStorage(AbstractStorage):
                 pass
             with open(fname, 'w' + ('b' if self._binary else '')) as fh:
                 fh.write(self.dumps(data))
-            return True
+            return pk
 
     def load(self, pk=None, fname=None, allow_empty=None, **kwargs):
         if pk is None and fname is None:

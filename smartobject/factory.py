@@ -1,4 +1,5 @@
 import threading
+import logging
 
 
 class SmartObjectFactory:
@@ -6,24 +7,27 @@ class SmartObjectFactory:
     Object factory class for Smart Objects
     """
 
-    def __init__(self, object_class=None):
+    def __init__(self, object_class=None, autosave=False):
         """
         Initialize Smart Object factory
 
         Args:
             object_class: Object class the factory is for
+            autosave: Auto save objects after creation
         """
         self._objects = {}
         self._object_class = object_class
         self.__lock = threading.RLock()
+        self.autosave = autosave
 
-    def create(self, obj=None, load=False, override=False, **kwargs):
+    def create(self, obj=None, load=False, save=None, override=False, **kwargs):
         """
         Create new Smart Object in factory
 
         Args:
             obj: append existing Smart Object
             load: call obj.load() before append
+            save: call obj.save() before append
             override: allow overriding existing objects
             **kwargs: sent to object constructor as-is
 
@@ -35,7 +39,11 @@ class SmartObjectFactory:
             obj = self._object_class(**kwargs)
         if load:
             obj.load()
+        if (self.autosave and save is not False) or save:
+            obj.save()
         pk = obj._get_primary_key()
+        if pk is None:
+            raise ValueError('Object has no primary key')
         with self.__lock:
             if pk in self._objects and not override:
                 raise RuntimeError(f'Object already exists: {pk}')
@@ -43,7 +51,7 @@ class SmartObjectFactory:
             obj._object_factory = self
         return obj
 
-    def append(self, obj, load=False, override=False):
+    def append(self, obj, load=False, save=None, override=False):
         """
         Append object to factory
 
@@ -52,9 +60,10 @@ class SmartObjectFactory:
         Args:
             obj: append existing Smart Object
             load: call obj.load() before append
+            save: call obj.save() before append
             override: allow overriding existing objects
         """
-        return self.create(obj=obj, load=load, override=override)
+        return self.create(obj=obj, load=load, save=save, override=override)
 
     def get(self, pk=None):
         """
@@ -102,7 +111,7 @@ class SmartObjectFactory:
         with self.__lock:
             for f in storage.get_storage(storage_id).list(**kwargs):
                 o = self._object_class(**kwargs)
-                o.load(fname=str(f), allow_empty=False)
+                o.load(fname=f, allow_empty=False)
                 self.create(obj=o, override=override)
 
     def save(self, pk=None, force=False):

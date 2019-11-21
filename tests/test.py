@@ -7,11 +7,24 @@ import logging
 
 sys.path.insert(0, Path().absolute().parent.as_posix())
 import smartobject
+import sqlalchemy as sa
 
 smartobject.config.property_maps_dir = 'map'
 smartobject.config.storage_dir = 'test_data'
 
 smartobject.define_sync(smartobject.DummySync())
+
+
+class T2(smartobject.SmartObject):
+
+    def __init__(self, id=None):
+        self.id = id
+        self.load_property_map()
+        self.apply_property_map()
+
+    def after_load(self, **kwargs):
+        if 'fname' in kwargs:
+            self.id = kwargs['fname'].stem
 
 
 class Person(smartobject.SmartObject):
@@ -65,9 +78,9 @@ class Employee(Person):
     def update_pk(self):
         if self.name is not None:
             self.id = '{}/{}'.format(self._department,
-                                      self.name.replace(' ', '_').lower())
+                                     self.name.replace(' ', '_').lower())
 
-    def after_load(self):
+    def after_load(self, **kwargs):
         self.update_pk()
 
 
@@ -103,12 +116,7 @@ def test_storage(tp):
 
 def test_db_storage():
     smartobject.define_storage(smartobject.JSONStorage())
-    import sqlalchemy as sa
-    import os
-    try:
-        os.unlink('test_data/test.db')
-    except:
-        pass
+    clean()
     db = sa.create_engine('sqlite:///test_data/test.db')
 
     def get_connection():
@@ -358,6 +366,45 @@ def test_load_from_dir():
     factory.load_from_files()
     assert len(factory.get()) == 3
     assert factory.get(key).salary == 150 * 100
+
+
+def test_t2_save_to_file():
+    clean()
+    smartobject.define_storage(smartobject.JSONStorage())
+    factory = smartobject.SmartObjectFactory(T2, autosave=True)
+    i = factory.create().id
+    assert i is not None
+    factory.clear()
+    factory.load_from_files()
+    factory.get(i)
+
+
+def test_t2_save_to_db():
+    clean()
+    db = sa.create_engine('sqlite:///test_data/t2.db')
+    db.execute("""
+    create table t2 (
+        id integer primary key autoincrement,
+        login varchar(30),
+        password varchar(30)
+        )
+    """)
+
+    storage = smartobject.SQLAStorage(db, 't2')
+    smartobject.define_storage(storage)
+    factory = smartobject.SmartObjectFactory(T2, autosave=True)
+    obj = factory.create()
+    obj.set_prop({
+        'login': 'test',
+        'password': '123'
+        }, save=True)
+    i = obj.id
+    assert i is not None
+    factory.clear()
+    factory.create(id=i, load=True)
+    obj = factory.get(i)
+    assert obj.login == 'test'
+    assert obj.password == '123'
 
 
 def clean():
