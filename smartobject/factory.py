@@ -98,11 +98,7 @@ class SmartObjectFactory:
             for i, o in self.get().items():
                 o.load()
 
-    def load_all(self,
-                 storage_id=None,
-                 load_opts={},
-                 override=False,
-                 **kwargs):
+    def load_all(self, storage_id=None, load_opts={}, override=False, **kwargs):
         """
         Load all objects from specified storage
 
@@ -192,7 +188,7 @@ class SmartObjectFactory:
         with self.__lock:
             self._objects.clear()
 
-    def cleanup(self, storage_id=None, **kwargs):
+    def cleanup_storage(self, storage_id=None, **kwargs):
         """
         Cleanup object storage
 

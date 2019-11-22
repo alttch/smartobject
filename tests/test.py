@@ -466,7 +466,7 @@ def test_file_cleanup():
     with pytest.raises(KeyError):
         factory.get('coders/mike')
         factory.get('coders/betty')
-    factory.cleanup()
+    factory.cleanup_storage()
     factory.clear()
     factory.load_all()
     with pytest.raises(KeyError):
@@ -491,7 +491,7 @@ def test_db_cleanup():
     o4.load()
     factory.remove(o3.id)
     o3.load()
-    factory.cleanup()
+    factory.cleanup_storage()
     o1.load()
     o2.load()
     with pytest.raises(LookupError):
