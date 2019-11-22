@@ -9,6 +9,8 @@ import threading
 from functools import partial
 from itertools import chain
 
+from jsonschema import validate
+
 logger = logging.getLogger('smartobject')
 
 
@@ -70,6 +72,8 @@ class SmartObject(object):
                 property_map = f'{config.property_maps_dir}/{property_map}'
             with open(property_map) as fh:
                 new_property_map = yaml.load(fh)
+        validate(instance=new_property_map,
+                 schema=constants.PROPERTY_MAP_SCHEMA)
         for k, v in new_property_map.items():
             if k not in self._property_map or override:
                 self._property_map[k] = v

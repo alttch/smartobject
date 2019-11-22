@@ -1,0 +1,9 @@
+id:
+  pk: true
+login:
+  store: true
+  type: str
+password:
+  store: true
+  type: str
+  log-hide-value: true
