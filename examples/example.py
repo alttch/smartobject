@@ -19,8 +19,8 @@ smartobject.define_storage(smartobject.RedisStorage(), 'r1')
 people = smartobject.SmartObjectFactory(Person)
 
 # create objects with factory
-people.create(name='John')
-people.create(name='Jane')
+people.create(opts={'name': 'John'})
+people.create(opts={'name': 'Jane'})
 
 # create object manually
 jack = Person('Jack')

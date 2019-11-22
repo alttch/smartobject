@@ -22,7 +22,7 @@ class SmartObjectFactory:
         self.__lock = threading.RLock()
         self.autosave = autosave
 
-    def create(self, obj=None, load=False, save=None, override=False, **kwargs):
+    def create(self, opts={}, obj=None, load=False, save=None, override=False):
         """
         Create new Smart Object in factory
 
@@ -31,14 +31,14 @@ class SmartObjectFactory:
             load: call obj.load() before append
             save: call obj.save() before append
             override: allow overriding existing objects
-            **kwargs: sent to object constructor as-is
+            opts: sent to object constructor as kwargs
 
         Raises:
             RuntimeError: if object with such primary key already exists and
             override is False
         """
         if obj is None:
-            obj = self._object_class(**kwargs)
+            obj = self._object_class(**opts)
         if load:
             obj.load()
         if (self.autosave and save is not False) or save:
@@ -98,7 +98,7 @@ class SmartObjectFactory:
             for i, o in self.get().items():
                 o.load()
 
-    def load_all(self, storage_id=None, load_opts={}, override=False, **kwargs):
+    def load_all(self, storage_id=None, load_opts={}, override=False, opts={}):
         """
         Load all objects from specified storage
 
@@ -106,7 +106,7 @@ class SmartObjectFactory:
             storage_id: storage ID
             load_opts: dict of kwargs, passed to storage.load_all() method
             override: allow overriding existing objects
-            **kwargs: passed to object constructor as-is
+            **kwargs: passed to object constructor as kwargs
         """
         from . import storage
         with self.__lock:
@@ -114,12 +114,12 @@ class SmartObjectFactory:
                 if 'data' in d:
                     logger.debug(
                         f'Creating object {self._object_class.__name__}')
-                    o = self._object_class(**kwargs)
+                    o = self._object_class(**opts)
                     o.set_prop(d['data'],
                                _allow_readonly=True,
                                sync=False,
                                save=False)
-                    o.after_load(**d.get('info', {}))
+                    o.after_load(opts=d.get('info', {}))
                     o.sync()
                     self.create(obj=o, override=override, save=False)
 
@@ -188,7 +188,7 @@ class SmartObjectFactory:
         with self.__lock:
             self._objects.clear()
 
-    def cleanup_storage(self, storage_id=None, **kwargs):
+    def cleanup_storage(self, storage_id=None, opts={}):
         """
         Cleanup object storage
 
@@ -197,14 +197,14 @@ class SmartObjectFactory:
 
         Args:
             storage_id: storage id to cleanup or None for default storage
-            **kwargs: passed to storage.cleanup() as-is
+            opts: passed to storage.cleanup() as kwargs
         """
         from . import storage
         logger.debug(
             f'{self._object_class.__name__} storage {storage_id} cleanup')
         with self.__lock:
             return storage.get_storage(storage_id).cleanup(
-                list(self.get()), **kwargs)
+                list(self.get()), **opts)
 
     def remove(self, pk, _obj=None):
         """

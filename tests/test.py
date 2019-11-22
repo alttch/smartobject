@@ -22,9 +22,9 @@ class T2(smartobject.SmartObject):
         self.load_property_map()
         self.apply_property_map()
 
-    def after_load(self, **kwargs):
-        if 'fname' in kwargs:
-            self.id = kwargs['fname'].stem
+    def after_load(self, opts, **kwargs):
+        if 'fname' in opts:
+            self.id = opts['fname'].stem
 
 
 class Person(smartobject.SmartObject):
@@ -80,7 +80,7 @@ class Employee(Person):
             self.id = '{}/{}'.format(self._department,
                                      self.name.replace(' ', '_').lower())
 
-    def after_load(self, **kwargs):
+    def after_load(self, opts, **kwargs):
         self.update_pk()
 
 
@@ -305,7 +305,7 @@ def test_factory():
     smartobject.define_storage(smartobject.JSONStorage())
     smartobject.define_storage(smartobject.DummyStorage(), 'db1')
     factory = smartobject.SmartObjectFactory(Employee)
-    employee = factory.create(name='John Doe')
+    employee = factory.create(opts={'name': 'John Doe'})
     pk = employee.id
     factory.set_prop(pk, {'personal_code': '0xFF'})
     factory.save()
@@ -314,13 +314,13 @@ def test_factory():
     s = employee.serialize('salary')
     assert len(s) == 2
     with pytest.raises(RuntimeError):
-        employee = factory.create(name='John Doe')
-    employee = factory.create(name='John Doe', override=True, load=False)
+        employee = factory.create({'name': 'John Doe'})
+    employee = factory.create({'name': 'John Doe'}, override=True, load=False)
     assert employee.personal_code is None
     factory.load(pk)
     assert employee.personal_code == 255
     factory.delete(pk)
-    employee = factory.create(name='John Doe', override=True, load=False)
+    employee = factory.create({'name': 'John Doe'}, override=True, load=False)
     employee.delete()
     with pytest.raises(KeyError):
         factory.get(employee.id)
@@ -366,9 +366,9 @@ def test_load_from_dir():
     smartobject.define_storage(smartobject.JSONStorage())
     smartobject.define_storage(smartobject.DummyStorage(), 'db1')
     factory = smartobject.SmartObjectFactory(Employee)
-    factory.create(name='John Doe')
-    factory.create(name='Jane Doe')
-    e = factory.create(name='Jack Daniels')
+    factory.create(opts={'name': 'John Doe'})
+    factory.create(opts={'name': 'Jane Doe'})
+    e = factory.create(opts={'name': 'Jack Daniels'})
     e.set_prop('salary', 150)
     key = e.id
     factory.save()
@@ -414,7 +414,7 @@ def test_t2_save_to_db():
     i = obj.id
     assert i is not None
     factory.clear()
-    factory.create(id=i, load=True)
+    factory.create(opts={'id': i}, load=True)
     obj = factory.get(i)
     assert obj.login == 'test'
     assert obj.password == '123'
@@ -452,7 +452,7 @@ def test_file_cleanup():
     factory = smartobject.SmartObjectFactory(Employee)
     names = ['Mike', 'Betty', 'Kate', 'John', 'Boris', 'Ivan']
     for n in names:
-        factory.create(name=n)
+        factory.create(opts={'name': n})
     factory.save()
     for n in names:
         p = Path(f'test_data/coders___{n.lower()}.json')
