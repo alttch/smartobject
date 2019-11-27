@@ -521,4 +521,29 @@ def test_factory_indexes():
     assert len(factory.get('test', prop='login')) == 0
 
 
+def test_factory_autoload():
+    clean()
+    storage = smartobject.JSONStorage()
+    storage.allow_empty = False
+    smartobject.define_storage(storage)
+    factory = smartobject.SmartObjectFactory(T2, autoload=True, autosave=True)
+    o1 = factory.create()
+    o2 = factory.create()
+    o3 = factory.create()
+    o1.set_prop('login', 'test1')
+    o2.set_prop('login', 'test2')
+    o3.set_prop('login', 'test3')
+    factory.save()
+    pk1 = o1.id
+    pk2 = o2.id
+    pk3 = o3.id
+    factory.clear()
+    import os
+    os.unlink(f'test_data/{pk3}.json')
+    assert factory.get(pk1).serialize()['login'] == 'test1'
+    assert factory.get(pk2).serialize()['login'] == 'test2'
+    with pytest.raises(FileNotFoundError):
+        assert factory.get(pk3)
+
+
 clean()

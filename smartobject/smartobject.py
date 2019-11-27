@@ -166,6 +166,9 @@ class SmartObject(object):
             raise ValueError('Primary key is not set')
         return pk
 
+    def _set_primary_key(self, pk=None):
+        setattr(self, self.__primary_key_field, pk)
+
     def __check_deleted(self):
         if self.deleted:
             raise RuntimeError('object {c} {pk} is deleted'.format(

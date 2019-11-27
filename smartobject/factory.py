@@ -9,18 +9,20 @@ class SmartObjectFactory:
     Object factory class for Smart Objects
     """
 
-    def __init__(self, object_class=None, autosave=False):
+    def __init__(self, object_class=None, autoload=False, autosave=False):
         """
         Initialize Smart Object factory
 
         Args:
             object_class: Object class the factory is for
+            autoload: try auto-loading object if not found
             autosave: Auto save objects after creation
         """
         self._objects = {}
         self._objects_by_prop = {}
         self._object_class = object_class
         self.__lock = threading.RLock()
+        self.autoload = autoload
         self.autosave = autosave
 
     def add_index(self, prop):
@@ -130,6 +132,9 @@ class SmartObjectFactory:
                 is looked up by primary key
         Raises:
             KeyError: if object with such key doesn't exist (for primary key)
+            FileNotFoundError, LookupError: if auto-load is on but object not
+                found in storage
+
         Returns:
             For primary key: single object is returned. For another prop: list
             of objects. The list can be empty
@@ -140,7 +145,17 @@ class SmartObjectFactory:
             elif prop is not None:
                 return list(self._objects_by_prop[prop][key])
             else:
-                return self._objects[key]
+                try:
+                    return self._objects[key]
+                except KeyError:
+                    if self.autoload:
+                        obj = self._object_class()
+                        obj._set_primary_key(key)
+                        obj.load()
+                        self.append(obj)
+                        return obj
+                    else:
+                        raise
 
     def load(self, pk=None):
         """
