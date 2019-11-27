@@ -499,4 +499,26 @@ def test_db_cleanup():
     o4.load()
 
 
+def test_factory_indexes():
+    clean()
+    smartobject.define_storage(smartobject.JSONStorage())
+    factory = smartobject.SmartObjectFactory(T2, autosave=True)
+    factory.add_index('login')
+    o1 = factory.create()
+    o2 = factory.create()
+    o3 = factory.create()
+    o1.set_prop('login', 'test')
+    o2.set_prop('login', 'test2')
+    o3.set_prop('login', 'test')
+    factory.reindex(o1.id)
+    factory.reindex(o2.id)
+    factory.reindex(o3.id)
+    factory.reindex(o3.id)
+    assert len(factory.get('test', prop='login')) == 2
+    factory.remove(o1)
+    assert len(factory.get('test', prop='login')) == 1
+    factory.remove(o3)
+    assert len(factory.get('test', prop='login')) == 0
+
+
 clean()
