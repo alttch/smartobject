@@ -86,16 +86,16 @@ class SmartObjectFactory:
         pk = obj._get_primary_key()
         if pk is None:
             raise ValueError('Object has no primary key')
-        with self.__lock:
-            if pk in self._objects and not override:
-                raise RuntimeError(f'Object already exists: {pk}')
-            self._objects[pk] = obj
-            self._objects_last_access[pk] = time.perf_counter()
-            self.purge()
-            obj._object_factory = self
-            self.reindex(pk)
-            logger.debug(
-                f'Added object {self._object_class.__name__} {pk} to factory')
+        if self.maxsize != 0:
+            with self.__lock:
+                if pk in self._objects and not override:
+                    raise RuntimeError(f'Object already exists: {pk}')
+                self._objects[pk] = obj
+                self._objects_last_access[pk] = time.perf_counter()
+                self.reindex(pk)
+                obj._object_factory = self
+                self.purge()
+                logger.debug(f'+ object {self._object_class.__name__} {pk}')
         return obj
 
     def reindex(self, obj):
