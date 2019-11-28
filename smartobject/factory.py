@@ -9,7 +9,7 @@ class SmartObjectFactory:
     Object factory class for Smart Objects
     """
 
-    def __init__(self, object_class=None, autoload=False, autosave=False):
+    def __init__(self, object_class=None, **kwargs):
         """
         Initialize Smart Object factory
 
@@ -22,8 +22,8 @@ class SmartObjectFactory:
         self._objects_by_prop = {}
         self._object_class = object_class
         self.__lock = threading.RLock()
-        self.autoload = autoload
-        self.autosave = autosave
+        self.autoload = kwargs.get('autoload', False)
+        self.autosave = kwargs.get('autosave', False)
 
     def add_index(self, prop):
         """
