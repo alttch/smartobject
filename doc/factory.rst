@@ -40,7 +40,7 @@ By default, SmartObjectFactory stores all created/appended objects in internal
 object list.
 
 If you limit factory object size list with constructor param *maxsize*, it will
-start working act as LRU cache: when the new object is created or appended, the
+start working as LRU cache: when the new object is created or appended, the
 factory will delete the least recently accessed objects to make sure the list
 size is below or equal to maximum.
 
