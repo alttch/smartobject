@@ -546,4 +546,25 @@ def test_factory_autoload():
         assert factory.get(pk3)
 
 
+def test_factory_lru():
+    clean()
+    smartobject.define_storage(smartobject.JSONStorage())
+    factory = smartobject.SmartObjectFactory(T2,
+                                             autoload=True,
+                                             autosave=True,
+                                             maxsize=2)
+    o1 = factory.create()
+    o2 = factory.create()
+    o3 = factory.create()
+    assert len(factory._objects) == 2
+    factory.get(o3.id)
+    assert len(factory._objects) == 2
+    factory.get(o2.id)
+    assert len(factory._objects) == 2
+    factory.get(o1.id)
+    assert len(factory._objects) == 2
+    with pytest.raises(RuntimeError):
+        factory.cleanup_storage()
+
+
 clean()

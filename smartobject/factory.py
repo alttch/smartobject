@@ -1,5 +1,6 @@
 import threading
 import logging
+import time
 
 logger = logging.getLogger('smartobject')
 
@@ -17,13 +18,16 @@ class SmartObjectFactory:
             object_class: Object class the factory is for
             autoload: try auto-loading object if not found
             autosave: Auto save objects after creation
+            maxsize: max number of objects loaded (factory becomes LRU cache)
         """
         self._objects = {}
+        self._objects_last_access = {}
         self._objects_by_prop = {}
         self._object_class = object_class
         self.__lock = threading.RLock()
         self.autoload = kwargs.get('autoload', False)
         self.autosave = kwargs.get('autosave', False)
+        self.maxsize = kwargs.get('maxsize')
 
     def add_index(self, prop):
         """
@@ -86,6 +90,8 @@ class SmartObjectFactory:
             if pk in self._objects and not override:
                 raise RuntimeError(f'Object already exists: {pk}')
             self._objects[pk] = obj
+            self._objects_last_access[pk] = time.perf_counter()
+            self.purge()
             obj._object_factory = self
             self.reindex(pk)
             logger.debug(
@@ -121,6 +127,18 @@ class SmartObjectFactory:
         """
         return self.create(obj=obj, load=load, save=save, override=override)
 
+    def touch(self, obj):
+        """
+        Mark object accessed
+
+        Args:
+            obj: object or object primary key, required
+        """
+        with self.__lock:
+            if isinstance(obj, self._object_class):
+                obj = obj._get_primary_key()
+            self._objects_last_access[obj] = time.perf_counter()
+
     def get(self, key=None, prop=None):
         """
         Get Smart Object from factory
@@ -143,10 +161,16 @@ class SmartObjectFactory:
             if not key:
                 return self._objects.copy()
             elif prop is not None:
-                return list(self._objects_by_prop[prop][key])
+                result = []
+                for obj in self._objects_by_prop[prop][key]:
+                    self.touch(obj)
+                    result.append(obj)
+                return result
             else:
                 try:
-                    return self._objects[key]
+                    obj = self._objects[key]
+                    self.touch(obj)
+                    return obj
                 except KeyError:
                     if self.autoload:
                         obj = self._object_class()
@@ -235,12 +259,17 @@ class SmartObjectFactory:
             pk: object primary key, required. Other arguments are passed to
                 SmartObject.set_prop as-is
         """
-        return self.get(pk).set_prop(*args, **kwargs)
+        obj = self.get(pk)
+        result = obj.set_prop(*args, **kwargs)
+        if self.autosave:
+            obj.save()
+        return result
 
     def serialize(self, pk, *args, **kwargs):
         """
         Serialize object
         """
+        self.touch(pk)
         return self.get(pk).serialize(*args, **kwargs)
 
     def delete(self, obj):
@@ -275,12 +304,30 @@ class SmartObjectFactory:
             storage_id: storage id to cleanup or None for default storage
             opts: passed to storage.cleanup() as kwargs
         """
+        if self.maxsize is not None:
+            raise RuntimeError('Can not perform cleanup, size limits are set')
         from . import storage
         logger.debug(
             f'{self._object_class.__name__} storage {storage_id} cleanup')
         with self.__lock:
             return storage.get_storage(storage_id).cleanup(
                 list(self.get()), **opts)
+
+    def purge(self):
+        """
+        Purge factory object cache
+        """
+        if self.maxsize is None: return
+        with self.__lock:
+            if len(self._objects) > self.maxsize:
+                c = 0
+                for x in sorted(self._objects_last_access.items(),
+                                key=lambda kv: kv[1])[:len(self._objects) -
+                                                      self.maxsize]:
+                    self.remove(x[0])
+                    c += 1
+                logger.debug(
+                    f'{self._object_class.__name__} {c} objects purged')
 
     def remove(self, obj):
         """
@@ -304,3 +351,4 @@ class SmartObjectFactory:
                     except (ValueError, KeyError):
                         pass
             del self._objects[pk]
+            del self._objects_last_access[pk]
