@@ -64,6 +64,16 @@ class AbstractStorage:
         """
         return {}
 
+    def load_by_prop(self, key, prop, **kwargs):
+        """
+        Load object data from the storage by secondary key
+
+        Args:
+            key: object key value
+            prop: object key name
+        """
+        raise RuntimeError('Not implemented')
+
     def load_all(self, **kwargs):
         """
         Load object data for all objecta and return it as list generator
@@ -260,7 +270,17 @@ class SQLAStorage(AbstractStorage):
             while True:
                 d = result.fetchone()
                 if d is None: break
-                yield { 'data':  dict(d) }
+                yield {'data': dict(d)}
+
+    def load_by_prop(self, key, prop, **kwargs):
+        with self.__lock:
+            result = self.get_db().execute(
+                self.sa.text(f'select * from {self.table} where {prop}=:value'),
+                value=key)
+            while True:
+                d = result.fetchone()
+                if d is None: break
+                yield {'data': dict(d)}
 
     def get_prop(self, pk, prop, **kwargs):
         with self.__lock:

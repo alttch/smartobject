@@ -18,6 +18,9 @@ SmartObjectFactory class
 Object auto-loading
 ===================
 
+By primary key
+--------------
+
 If *autoload=True* argument is used on factory creation, the factory will try
 automatically load Smart Objects from the storage when **factory.get()** method
 is called and the object doesn't exist.
@@ -32,6 +35,25 @@ To make this working, the following conditions must be met:
 If *allow_empty=False* for the object storage, **factory.get()** method raises
 *LookupError* (for RDBMS storages) or *FileNotFoundError* (for file-based
 storages) exceptions in case if storage doesn't have an object with such PK.
+
+By property
+-----------
+
+SmartObjectFactory also supports loading objects by property as secondary key.
+To use this feature:
+
+* Factory **autoload** option should be set to *True*
+* For get method, **prop** argument should be specified
+* You may also specify storage ID to load missing objects from, if not
+  specified - default storage is used
+* Objects are auto-loaded from the storage in two cases:
+
+   * when object is missing in factory
+   * when *get_all=True* is specified for **factory.get()** method.
+
+.. note::
+
+   Loading objects by prop is supported only for RDBMS storages
 
 Object cache size limit
 =======================

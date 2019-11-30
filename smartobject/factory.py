@@ -139,7 +139,7 @@ class SmartObjectFactory:
                 obj = obj._get_primary_key()
             self._objects_last_access[obj] = time.perf_counter()
 
-    def get(self, key=None, prop=None):
+    def get(self, key=None, prop=None, storage_id=None, get_all=False, opts={}):
         """
         Get Smart Object from factory
 
@@ -148,6 +148,11 @@ class SmartObjectFactory:
                 returned
             prop: object prop (should be indexed). If no prop specified, object
                 is looked up by primary key
+            storage_id: if prop is specified, look up for objects in specified
+                storage, if no objects present in factory. storage should
+                support
+            get_all: always lookup for all objects in storage
+            opts: options for object constructor if loaded from storage
         Raises:
             KeyError: if object with such key doesn't exist (for primary key)
             FileNotFoundError, LookupError: if auto-load is on but object not
@@ -162,9 +167,32 @@ class SmartObjectFactory:
                 return self._objects.copy()
             elif prop is not None:
                 result = []
-                for obj in self._objects_by_prop[prop][key]:
-                    self.touch(obj)
-                    result.append(obj)
+                if not get_all:
+                    for obj in self._objects_by_prop[prop][key]:
+                        self.touch(obj)
+                        result.append(obj)
+                if self.autoload and (get_all or not result):
+                    from . import storage
+                    try:
+                        objects = storage.get_storage(storage_id).load_by_prop(
+                            key, prop)
+                    except RuntimeError:
+                        objects = []
+                    for d in objects:
+                        if 'data' in d:
+                            logger.debug(
+                                f'Creating object {self._object_class.__name__}'
+                            )
+                            o = self._object_class(**opts)
+                            o.set_prop(d['data'],
+                                       _allow_readonly=True,
+                                       sync=False,
+                                       save=False)
+                            o.after_load(opts=d.get('info', {}))
+                            o.sync()
+                            if o._get_primary_key() not in self._objects:
+                                self.create(obj=o, save=False)
+                            result.append(o)
                 return result
             else:
                 try:
@@ -173,7 +201,7 @@ class SmartObjectFactory:
                     return obj
                 except KeyError:
                     if self.autoload:
-                        obj = self._object_class()
+                        obj = self._object_class(**opts)
                         obj._set_primary_key(key)
                         obj.load()
                         self.append(obj)

@@ -566,5 +566,29 @@ def test_factory_lru():
     with pytest.raises(RuntimeError):
         factory.cleanup_storage()
 
+def test_factory_load_by_secondary():
+    db = _prepare_t2_db()
+    storage = smartobject.SQLAStorage(db, 't2')
+    smartobject.define_storage(storage)
+    factory = smartobject.SmartObjectFactory(T2, autoload=True, autosave=True)
+    factory.add_index('login')
+    o1 = factory.create()
+    o2 = factory.create()
+    o3 = factory.create()
+    o4 = factory.create()
+    o1.set_prop('login', 'test')
+    o2.set_prop('login', 'test')
+    o3.set_prop('login', 'test2')
+    o4.set_prop('login', 'test3')
+    factory.save()
+    factory.clear()
+    test1 = factory.get(o1.id)
+    tests = factory.get('test', prop='login')
+    assert len(tests) == 1
+    tests = factory.get('test', prop='login', get_all=True)
+    assert len(tests) == 2
+    tests = factory.get('test2', prop='login', get_all=True)
+    assert len(tests) == 1
 
 clean()
+test_factory_load_by_secondary()
