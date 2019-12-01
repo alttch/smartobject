@@ -15,7 +15,7 @@ setuptools.setup(name='smartobject',
                  url='https://github.com/alttch/smartobject',
                  packages=setuptools.find_packages(),
                  license='MIT',
-                 install_requires=['jsonschema', 'pyyaml'],
+                 install_requires=['jsonschema', 'pyyaml', 'pyaltt2'],
                  classifiers=('Programming Language :: Python :: 3',
                               'License :: OSI Approved :: MIT License',
                               'Topic :: Software Development :: Libraries'))

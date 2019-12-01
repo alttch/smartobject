@@ -11,16 +11,9 @@ from itertools import chain
 
 from jsonschema import validate
 
+from pyaltt2.parsers import val_to_boolean
+
 logger = logging.getLogger('smartobject')
-
-
-def val_to_boolean(s):
-    if isinstance(s, bool): return s
-    if s is None: return None
-    val = str(s)
-    if val.lower() in ['1', 'true', 'yes', 'on', 'y']: return True
-    if val.lower() in ['0', 'false', 'no', 'off', 'n']: return False
-    return None
 
 
 class SmartObject(object):
