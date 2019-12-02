@@ -11,7 +11,7 @@ from itertools import chain
 
 from jsonschema import validate
 
-from pyaltt2.parsers import val_to_boolean
+from pyaltt2.converters import val_to_boolean
 
 logger = logging.getLogger('smartobject')
 
