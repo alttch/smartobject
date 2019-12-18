@@ -215,7 +215,7 @@ class SQLAStorage(AbstractStorage):
     Implements get_prop/set_prop methods, can be used for external properties
 
     Can save/load objects
-    
+
     The table for objects must be created manually before the class methods can
     work
     """
@@ -326,7 +326,7 @@ class SQLAStorage(AbstractStorage):
                     values = ['"{}"'.format(self._safe_format(pk))]
                 for k, v in data.items():
                     fields.append(k)
-                    values.append("{}".format(self._safe_format(v)))
+                    values.append('"{}"'.format(self._safe_format(v)))
                 result = db.execute(
                     'insert into {table} ({fields}) values ({values})'.format(
                         table=self.table,
