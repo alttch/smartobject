@@ -307,6 +307,8 @@ class SQLAStorage(AbstractStorage):
         with self.__lock:
             db = self.get_db()
             updates = [
+                '{}={}'.format(k, v) if isinstance(v, bool) or
+                isinstance(v, int) or isinstance(v, float) else
                 '{}="{}"'.format(k, self._safe_format(v))
                 for k, v in modified.items()
             ]
