@@ -203,7 +203,10 @@ class SmartObjectFactory:
                     if self.autoload:
                         obj = self._object_class(**opts)
                         obj._set_primary_key(key)
-                        obj.load()
+                        try:
+                            obj.load()
+                        except:
+                            pass
                         self.append(obj)
                         return obj
                     else:
