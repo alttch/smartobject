@@ -17,7 +17,9 @@ class SmartObjectFactory:
         Args:
             object_class: Object class the factory is for
             autoload: try auto-loading object if not found
-            autosave: Auto save objects after creation
+            autocreate: auto create objects if autoload is True but object not
+                found in storage
+            autosave: auto save objects after creation
             maxsize: max number of objects loaded (factory becomes LRU cache)
         """
         self._objects = {}
@@ -26,6 +28,7 @@ class SmartObjectFactory:
         self._object_class = object_class
         self.__lock = threading.RLock()
         self.autoload = kwargs.get('autoload', False)
+        self.autocreate = kwargs.get('autocreate', False)
         self.autosave = kwargs.get('autosave', False)
         self.maxsize = kwargs.get('maxsize')
 
@@ -205,8 +208,11 @@ class SmartObjectFactory:
                         obj._set_primary_key(key)
                         try:
                             obj.load()
-                        except:
-                            pass
+                        except (FileNotFoundError, LookupError):
+                            if self.autocreate:
+                                pass
+                            else:
+                                raise
                         self.append(obj)
                         return obj
                     else:
