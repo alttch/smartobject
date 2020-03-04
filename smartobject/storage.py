@@ -329,13 +329,17 @@ class SQLAStorage(AbstractStorage):
                 for k, v in data.items():
                     fields.append(k)
                     values.append('"{}"'.format(self._safe_format(v)))
+                use_lastrowid = 'sqlite' in db.engine.name or \
+                        'mysql' in db.engine.name
                 result = db.execute(
-                    'insert into {table} ({fields}) values ({values})'.format(
-                        table=self.table,
-                        fields=','.join(fields),
-                        values=','.join(values)))
+                    'insert into {table} ({fields}) values ({values} {rid})'.
+                    format(table=self.table,
+                           fields=','.join(fields),
+                           values=','.join(values),
+                           rid='' if use_lastrowid else 'returning id'))
                 if pk is None:
-                    pk = result.lastrowid
+                    pk = result.lastrowid if use_lastrowid else \
+                            result.fetchone().id
             return pk
 
     def cleanup(self, pks, **kwargs):
